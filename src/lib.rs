@@ -3,5 +3,8 @@
 
 pub use xmc1100;
 
+pub mod delay;
 pub mod gpio;
 pub mod prelude;
+pub mod rcc;
+pub mod time;
