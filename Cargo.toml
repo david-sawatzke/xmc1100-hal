@@ -1,0 +1,32 @@
+[package]
+name = "xmc1100-hal"
+version = "0.1.0"
+authors = ["David Sawatzke <david-sawatzke@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+xmc1100 = {git = "https://github.com/david-sawatzke/xmc1100-rs"}
+bare-metal = { version = "0.2.4", features = ["const-fn"] }
+cortex-m = "0.5.8"
+cortex-m-rt = "0.6.7"
+nb = "0.1.1"
+void = { version = "1.0.2", default-features = false }
+
+[dependencies.embedded-hal]
+features = ["unproven"]
+version = "0.2.2"
+
+[dev-dependencies]
+panic-halt = "0.2.0"
+
+[features]
+device-selected = []
+rt = ["xmc1100/rt"]
+
+[profile.dev]
+debug = true
+
+[profile.release]
+debug = true
+lto = true
+opt-level = "s"
