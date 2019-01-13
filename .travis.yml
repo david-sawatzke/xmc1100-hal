@@ -1,0 +1,14 @@
+language: rust
+rust:
+  - stable
+  - nightly
+cache: cargo
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+before_install:
+  - sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi
+script:
+  - rustup target add thumbv6m-none-eabi
+  - cargo build --examples --release
