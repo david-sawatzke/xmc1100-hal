@@ -5,7 +5,7 @@ authors = ["David Sawatzke <david-sawatzke@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
-xmc1100 = {git = "https://github.com/david-sawatzke/xmc1100-rs"}
+xmc1100 = {git = "https://github.com/david-sawatzke/xmc1100-rs", features = ["rt"]}
 bare-metal = { version = "0.2.4", features = ["const-fn"] }
 cortex-m = "0.5.8"
 cortex-m-rt = "0.6.7"
@@ -19,10 +19,11 @@ version = "0.2.2"
 
 [dev-dependencies]
 panic-halt = "0.2.0"
+[build-dependencies]
+cc = "1.0.25"
 
 [features]
 device-selected = []
-rt = ["xmc1100/rt"]
 
 [profile.dev]
 debug = true
