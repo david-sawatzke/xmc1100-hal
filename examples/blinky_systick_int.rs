@@ -29,31 +29,30 @@ fn main() -> ! {
 
         /* (Re-)configure PA1 as output */
         let led = port1.p1_1.into_push_pull_output();
+        let _clocks = Clocks {
+            sysclk: MegaHertz(32).into(),
+        };
+
+        let mut syst = cp.SYST;
 
         cortex_m::interrupt::free(move |cs| {
-            let _clocks = Clocks {
-                sysclk: MegaHertz(32).into(),
-            };
-
-            let mut syst = cp.SYST;
-
             *PORT.borrow(cs).borrow_mut() = Some(led);
-
-            /* Initialise SysTick counter with a defined value */
-            unsafe { syst.cvr.write(1) };
-
-            /* Set source for SysTick counter, here full operating frequency (== 8MHz) */
-            syst.set_clock_source(Core);
-
-            /* Set reload value, i.e. timer delay 32 MHz/4 Mcounts == 8Hz or 125ms */
-            syst.set_reload(4_000_000 - 1);
-
-            /* Start counter */
-            syst.enable_counter();
-
-            /* Start interrupt generation */
-            syst.enable_interrupt();
         });
+
+        /* Initialise SysTick counter with a defined value */
+        unsafe { syst.cvr.write(1) };
+
+        /* Set source for SysTick counter, here full operating frequency (== 64MHz) */
+        syst.set_clock_source(Core);
+
+        /* Set reload value, i.e. timer delay 32 MHz/8 Mcounts == 4Hz or 250 ms */
+        syst.set_reload(256_000 - 1);
+
+        /* Start counter */
+        syst.enable_counter();
+
+        /* Start interrupt generation */
+        syst.enable_interrupt();
 
         let mut test = port1.p1_0.into_push_pull_output();
         loop {
@@ -74,25 +73,20 @@ fn main() -> ! {
 //, flash, state: u8 = 1);
 #[exception]
 fn SysTick() -> ! {
-    static mut state: u8 = 1;
+    static mut state: u8 = 0;
 
     /* Enter critical section */
     cortex_m::interrupt::free(|cs| {
         if let Some(ref mut led) = *PORT.borrow(cs).borrow_mut().deref_mut() {
             /* Check state variable, keep LED off most of the time and turn it on every 10th tick */
-            if *state < 10 {
+            if *state < 0x7F {
                 /* If set turn off the LED */
-                led.set_low();
-
-                /* And now increment state variable */
-                *state += 1;
+                led.set_high();
             } else {
                 /* If not set, turn on the LED */
-                led.set_high();
-
-                /* And set new state variable back to 0 */
-                *state = 0;
+                led.set_low();
             }
+            *state += 1;
         }
     });
 }
