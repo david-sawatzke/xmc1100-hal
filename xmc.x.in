@@ -105,28 +105,26 @@ SECTIONS
 
 
   /* ## Sections in RAM */
-  /* ### Veneer code */
-  /* Our real interrupts are here now */
-  /* This only neeeds to start at 0x2000 000C, but that complicates linking */
-  /* And the space isn't that useful, so we just fill it up in asm */
-  .veneer : ALIGN(4) {
-    KEEP(*(.XmcVeneerCode));
-    . = ALIGN(4); /* section size must be multiple of 4. See startup_XMC_xxxx.S file */
-  } > RAM AT > FLASH
   /* ### .data */
   .data : ALIGN(4)
   {
+  /* #### Veneer code */
+  /* Our real interrupts are here now */
+  /* This only neeeds to start at 0x2000 000C, but that complicates linking */
+  /* And the space isn't that useful, so we just fill it up in asm */
+    KEEP(*(.XmcVeneerCode));
+    . = ALIGN(4); /* section size must be multiple of 4. See startup_XMC_xxxx.S file */
     *(.data .data.*);
 
     . = ALIGN(4); /* 4-byte align the end (VMA) of this section */
   } > RAM AT > FLASH
 
   /* VMA of .data */
-  __sdata = ADDR(.veneer);
+  __sdata = ADDR(.data);
   __edata = ADDR(.data) + SIZEOF(.data);
 
   /* LMA of .data */
-  __sidata = LOADADDR(.veneer);
+  __sidata = LOADADDR(.data);
 
   /* ### .bss */
   .bss : ALIGN(4)

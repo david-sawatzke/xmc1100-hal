@@ -1,7 +1,10 @@
 [target.thumbv6m-none-eabi]
 runner = 'arm-none-eabi-gdb'
 rustflags = [
-  "-C", "link-arg=-Txmc.x",
+  "-C", "linker=arm-none-eabi-gcc",
+  "-C", "link-arg=-Wl,-Txmc.x",
+  "-C", "link-arg=-nostartfiles",
+
 ]
 
 [build]
