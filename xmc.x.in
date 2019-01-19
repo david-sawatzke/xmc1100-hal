@@ -72,12 +72,14 @@ SECTIONS
     KEEP(*(.vector_table.reset_vector)); /* this is the `__RESET_VECTOR` symbol */
     __reset_vector = .;
 
+    KEEP(*(.XmcClockConfig));
+    __clock_config = .;
     /* Exceptions */
-    KEEP(*(.vector_table.exceptions)); /* this is the `__EXCEPTIONS` symbol */
-    __eexceptions = .;
+    /* KEEP(*(.vector_table.exceptions)); */ /* this is the `__EXCEPTIONS` symbol */
+    /* __eexceptions = .; */
 
     /* Device specific interrupts */
-    KEEP(*(.vector_table.interrupts)); /* this is the `__INTERRUPTS` symbol */
+    /* KEEP(*(.vector_table.interrupts)); */ /* this is the `__INTERRUPTS` symbol */
   } > FLASH
 
   PROVIDE(_stext = ADDR(.vector_table) + SIZEOF(.vector_table));
@@ -159,6 +161,9 @@ SECTIONS
   {
     /* Unused exception related info that only wastes space */
     *(.ARM.exidx.*);
+    /* The interrupt table which isn't needed anymore */
+    *(.vector_table.exceptions);
+    *(.vector_table.interrupts);
   }
 }
 
@@ -187,17 +192,20 @@ BUG(cortex-m-rt): start of .heap is not 4-byte aligned");
 /* ## .vector_table */
 ASSERT(__reset_vector == ADDR(.vector_table) + 0x8, "
 BUG(cortex-m-rt): the reset vector is missing");
+/* ASSERT(__clock_config == ADDR(.vector_table) + 0x18, " */
+ASSERT(__clock_config > ADDR(.vector_table) + 0x8, "
+BUG(cortex-m-rt): the clock config is missing");
 
-ASSERT(__eexceptions == ADDR(.vector_table) + 0x40, "
-BUG(cortex-m-rt): the exception vectors are missing");
+/* ASSERT(__eexceptions == ADDR(.vector_table) + 0x40, " */
+/* BUG(cortex-m-rt): the exception vectors are missing"); */
 
-ASSERT(SIZEOF(.vector_table) > 0x40, "
-ERROR(cortex-m-rt): The interrupt vectors are missing.
-Possible solutions, from most likely to less likely:
-- Link to a svd2rust generated device crate
-- Disable the 'device' feature of cortex-m-rt to build a generic application (a dependency
-may be enabling it)
-- Supply the interrupt handlers yourself. Check the documentation for details.");
+/* ASSERT(SIZEOF(.vector_table) > 0x40, " */
+/* ERROR(cortex-m-rt): The interrupt vectors are missing. */
+/* Possible solutions, from most likely to less likely: */
+/* - Link to a svd2rust generated device crate */
+/* - Disable the 'device' feature of cortex-m-rt to build a generic application (a dependency */
+/* may be enabling it) */
+/* - Supply the interrupt handlers yourself. Check the documentation for details."); */
 
 /* ## .text */
 ASSERT(ADDR(.vector_table) + SIZEOF(.vector_table) <= _stext, "

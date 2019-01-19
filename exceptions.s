@@ -1,6 +1,15 @@
-    .syntax unified   
+    .syntax unified
     .cpu cortex-m0
 /* Inspired by XMC-for-Arduino */
+/* # Default clock values */
+    .section ".XmcClockConfig","a",%progbits
+    .long  0
+    .long HardFault
+    /* Clock config */
+	/* Run at 16 MHz */
+    .long 0x0001040
+    /* Leave clock gating alone */
+    .long 0x80000000
 /* ==================VENEERS VENEERS VENEERS VENEERS VENEERS=============== */
     .section ".XmcVeneerCode","ax",%progbits
 
@@ -8,7 +17,7 @@
     .long 0
     .long 0
     .long 0
-    
+
     .globl HardFault_Veneer
 HardFault_Veneer:
     LDR R0, =HardFault
@@ -20,7 +29,7 @@ HardFault_Veneer:
     .long 0
     .long 0
     .long 0
-    
+
 /* ======================================================================== */
     .globl SVC_Veneer
 SVC_Veneer:
@@ -34,17 +43,17 @@ PendSV_Veneer:
     LDR R0, =PendSV
     MOV PC,R0
 /* ======================================================================== */
-    .globl SysTick_Veneer 
+    .globl SysTick_Veneer
 SysTick_Veneer:
     LDR R0, =SysTick
     MOV PC,R0
 /* ======================================================================== */
-    .globl SCU_0_Veneer 
+    .globl SCU_0_Veneer
 SCU_0_Veneer:
     LDR R0, =SCU_0
     MOV PC,R0
 /* ======================================================================== */
-    .globl SCU_1_Veneer 
+    .globl SCU_1_Veneer
 SCU_1_Veneer:
     LDR R0, =SCU_1
     MOV PC,R0
@@ -54,22 +63,22 @@ SCU_2_Veneer:
     LDR R0, =SCU_2
     MOV PC,R0
 /* ======================================================================== */
-    .globl SCU_3_Veneer 
+    .globl SCU_3_Veneer
 SCU_3_Veneer:
     LDR R0, =ERU0_0
     MOV PC,R0
 /* ======================================================================== */
-    .globl SCU_4_Veneer 
+    .globl SCU_4_Veneer
 SCU_4_Veneer:
     LDR R0, =ERU0_1
     MOV PC,R0
 /* ======================================================================== */
-    .globl SCU_5_Veneer 
+    .globl SCU_5_Veneer
 SCU_5_Veneer:
     LDR R0, =ERU0_2
     MOV PC,R0
 /* ======================================================================== */
-    .globl SCU_6_Veneer 
+    .globl SCU_6_Veneer
 SCU_6_Veneer:
     LDR R0, =ERU0_3
     MOV PC,R0
@@ -106,7 +115,7 @@ USIC0_5_Veneer:
     LDR R0, =USIC0_5
     MOV PC,R0
 /* ======================================================================== */
-    .globl VADC0_C0_0_Veneer 
+    .globl VADC0_C0_0_Veneer
 VADC0_C0_0_Veneer:
     LDR R0, =VADC0_C0_0
     MOV PC,R0
