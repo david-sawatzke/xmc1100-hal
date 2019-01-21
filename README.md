@@ -54,7 +54,10 @@ guranteed size). These new interrupt handlers just emulate the style of normal
 cortex-m interrupts, like Infineon does it in their
 [XMC-for-Arduino](https://github.com/Infineon/XMC-for-Arduino/) project.
 
+This doesn't even properly work yet.
+
 ## TODO
+- The interrupt section still gets optimized out
 - Peripherals (everything)
 - JLink usage/scripting with OpenOCD
 - Clock config in flash
