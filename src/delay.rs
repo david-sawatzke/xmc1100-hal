@@ -7,41 +7,19 @@
 //!
 //! # Example
 //!
-//! ``` no_run
-//! use stm32f0xx_hal as hal;
-//!
-//! use crate::hal::stm32;
-//! use crate::hal::prelude::*;
-//! use crate::hal::delay::Delay;
-//! use cortex_m::peripheral::Peripherals;
-//!
-//! let mut p = stm32::Peripherals::take().unwrap();
-//! let mut cp = cortex_m::Peripherals::take().unwrap();
-//!
-//! let clocks = p.RCC.constrain().cfgr.freeze();
-//! let mut delay = Delay::new(cp.SYST, clocks);
-//! loop {
-//!     delay.delay_ms(1_000_u16);
-//! }
-//! ```
+//! TODO Look in the `examples/` directory
 
 use cast::{u16, u32};
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 
-use crate::rcc::Clocks;
+use crate::rcc::Rcc;
 use embedded_hal::blocking::delay::{DelayMs, DelayUs};
 
 /// System timer (SysTick) as a delay provider
 #[derive(Clone)]
 pub struct Delay {
-    scale: Scale,
-}
-
-#[derive(Clone)]
-enum Scale {
-    Mult(u32),
-    Div(u32),
+    scale: u32,
 }
 
 const SYSTICK_RANGE: u32 = 0x0100_0000;
@@ -50,18 +28,15 @@ impl Delay {
     /// Configures the system timer (SysTick) as a delay provider
     /// As access to the count register is possible without a reference, we can
     /// just drop it
-    pub fn new(mut syst: SYST, clocks: Clocks) -> Delay {
+    pub fn new(mut syst: SYST, rcc: &Rcc) -> Delay {
         syst.set_clock_source(SystClkSource::Core);
 
         syst.set_reload(SYSTICK_RANGE - 1);
         syst.clear_current();
         syst.enable_counter();
-
-        let scale = if clocks.sysclk().0 < 1_000_000 {
-            Scale::Div(1_000_000 / clocks.sysclk().0)
-        } else {
-            Scale::Mult(clocks.sysclk().0 / 1_000_000)
-        };
+        // TODO Check on which clock we're running
+        assert!(rcc.clocks.sysclk().0 >= 1_000_000);
+        let scale = rcc.clocks.sysclk().0 / 1_000_000;
 
         Delay { scale }
     }
@@ -95,23 +70,23 @@ impl DelayUs<u32> for Delay {
     fn delay_us(&mut self, us: u32) {
         // The SysTick Reload Value register supports values between 1 and 0x00FFFFFF.
         // Here less than maximum is used so we have some play if there's a long running interrupt.
-        const MAX_RVR: u32 = 0x007F_FFFF;
+        const MAX_TICKS: u32 = 0x007F_FFFF;
 
-        let mut total_rvr = match self.scale {
-            Scale::Div(x) => us / x,
-            Scale::Mult(x) => us * x,
-        };
+        let mut total_ticks = us * self.scale;
 
-        while total_rvr != 0 {
-            let current_rvr = if total_rvr <= MAX_RVR {
-                total_rvr
+        while total_ticks != 0 {
+            let current_ticks = if total_ticks <= MAX_TICKS {
+                total_ticks
             } else {
-                MAX_RVR
+                MAX_TICKS
             };
 
             let start_count = SYST::get_current();
-            total_rvr -= current_rvr;
-            while (start_count.wrapping_sub(SYST::get_current()) % SYSTICK_RANGE) < current_rvr {}
+            total_ticks -= current_ticks;
+
+            // Use the wrapping substraction and the modulo to deal with the systick wrapping around
+            // from 0 to 0xFFFF
+            while (start_count.wrapping_sub(SYST::get_current()) % SYSTICK_RANGE) < current_ticks {}
         }
     }
 }

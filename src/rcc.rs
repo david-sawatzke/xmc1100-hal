@@ -1,4 +1,13 @@
+//! Rcc Handling
+
+// TODO This is mostly a shim. Port more from stm32f0xx-hal
+
 use crate::time::Hertz;
+
+/// Constrained RCC peripheral
+pub struct Rcc {
+    pub clocks: Clocks,
+}
 
 /// Frozen clock frequencies
 ///

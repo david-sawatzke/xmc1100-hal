@@ -8,6 +8,7 @@ pub trait GpioExt {
     type Parts;
 
     /// Splits the GPIO block into independent pins and registers
+    // NOTE We don't need an rcc parameter because it's enabled by default
     fn split(self) -> Self::Parts;
 }
 
@@ -84,6 +85,8 @@ macro_rules! gpio {
             use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin, toggleable};
             use crate::xmc1100::$GPIOX;
 
+            use cortex_m::interrupt::CriticalSection;
+
             use super::{
                 Floating, GpioExt, Input, OpenDrain, Output,
                 PullDown, PullUp, PushPull,
@@ -120,6 +123,7 @@ macro_rules! gpio {
                     /// Configures the pin to operate as a floating input pin
                     pub fn into_floating_input(
                         self,
+                        _cs: &CriticalSection
                     ) -> $PXi<Input<Floating>> {
                         unsafe {
                             &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
@@ -132,6 +136,7 @@ macro_rules! gpio {
                     /// Configures the pin to operate as a pulled down input pin
                     pub fn into_pull_down_input(
                         self,
+                        _cs: &CriticalSection
                         ) -> $PXi<Input<PullDown>> {
                         unsafe {
                             &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
@@ -144,6 +149,7 @@ macro_rules! gpio {
                     /// Configures the pin to operate as a pulled up input pin
                     pub fn into_pull_up_input(
                         self,
+                        _cs: &CriticalSection
                     ) -> $PXi<Input<PullUp>> {
                         unsafe {
                             &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
@@ -156,6 +162,7 @@ macro_rules! gpio {
                     /// Configures the pin to operate as an open drain output pin
                     pub fn into_open_drain_output(
                         self,
+                        _cs: &CriticalSection
                     ) -> $PXi<Output<OpenDrain>> {
                         unsafe {
                             &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
@@ -168,6 +175,7 @@ macro_rules! gpio {
                     /// Configures the pin to operate as an push pull output pin
                     pub fn into_push_pull_output(
                         self,
+                        _cs: &CriticalSection
                     ) -> $PXi<Output<PushPull>> {
                         unsafe {
                             &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {

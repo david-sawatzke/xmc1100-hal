@@ -27,8 +27,6 @@ fn main() -> ! {
     if let (Some(p), Some(cp)) = (xmc1100::Peripherals::take(), Peripherals::take()) {
         let port1 = p.PORT1.split();
 
-        /* (Re-)configure PA1 as output */
-        let led = port1.p1_1.into_push_pull_output();
         let _clocks = Clocks {
             sysclk: MegaHertz(32).into(),
         };
@@ -36,6 +34,8 @@ fn main() -> ! {
         let mut syst = cp.SYST;
 
         cortex_m::interrupt::free(move |cs| {
+            /* (Re-)configure PA1 as output */
+            let led = port1.p1_1.into_push_pull_output(&cs);
             *PORT.borrow(cs).borrow_mut() = Some(led);
         });
 
@@ -51,17 +51,14 @@ fn main() -> ! {
         /* Start counter */
         syst.enable_counter();
 
-        /* Start interrupt generation */
-        syst.enable_interrupt();
-
-        let mut test = port1.p1_0.into_push_pull_output();
-        loop {
-            let x = unsafe { HardFault_Veneer };
-            /* Turn PA1 on a million times in a row */
-            for _ in 0..x {
-                test.set_high();
-            }
+        let x = unsafe { HardFault_Veneer };
+        /* Turn PA1 on a million times in a row */
+        for _ in 0..x {
+            /* Start interrupt generation */
+            syst.enable_interrupt();
         }
+
+        loop {}
     }
     loop {
         continue;
