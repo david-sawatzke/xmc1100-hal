@@ -36,6 +36,7 @@ EXTERN(DefaultHandler);
 
 PROVIDE(NonMaskableInt = DefaultHandler);
 EXTERN(HardFaultTrampoline);
+EXTERN(HardFault_Veneer);
 PROVIDE(MemoryManagement = DefaultHandler);
 PROVIDE(BusFault = DefaultHandler);
 PROVIDE(UsageFault = DefaultHandler);
@@ -115,6 +116,7 @@ SECTIONS
   /* This only neeeds to start at 0x2000 000C, but that complicates linking */
   /* And the space isn't that useful, so we just fill it up in asm */
     KEEP(*(.XmcVeneerCode));
+    __xmc_veneer = .;
     . = ALIGN(4); /* section size must be multiple of 4. See startup_XMC_xxxx.S file */
     *(.data .data.*);
 
@@ -192,20 +194,12 @@ BUG(cortex-m-rt): start of .heap is not 4-byte aligned");
 /* ## .vector_table */
 ASSERT(__reset_vector == ADDR(.vector_table) + 0x8, "
 BUG(cortex-m-rt): the reset vector is missing");
-/* ASSERT(__clock_config == ADDR(.vector_table) + 0x18, " */
+
 ASSERT(__clock_config > ADDR(.vector_table) + 0x8, "
 BUG(cortex-m-rt): the clock config is missing");
 
-/* ASSERT(__eexceptions == ADDR(.vector_table) + 0x40, " */
-/* BUG(cortex-m-rt): the exception vectors are missing"); */
-
-/* ASSERT(SIZEOF(.vector_table) > 0x40, " */
-/* ERROR(cortex-m-rt): The interrupt vectors are missing. */
-/* Possible solutions, from most likely to less likely: */
-/* - Link to a svd2rust generated device crate */
-/* - Disable the 'device' feature of cortex-m-rt to build a generic application (a dependency */
-/* may be enabling it) */
-/* - Supply the interrupt handlers yourself. Check the documentation for details."); */
+ASSERT(__xmc_veneer > ADDR(.data) + 0x8, "
+BUG(cortex-m-rt): the veneer code is missing");
 
 /* ## .text */
 ASSERT(ADDR(.vector_table) + SIZEOF(.vector_table) <= _stext, "
