@@ -28,7 +28,7 @@ fn main() -> ! {
         let port1 = p.PORT1.split();
 
         let _clocks = Clocks {
-            sysclk: MegaHertz(32).into(),
+            sysclk: MegaHertz(8).into(),
         };
 
         let mut syst = cp.SYST;
@@ -45,18 +45,14 @@ fn main() -> ! {
         /* Set source for SysTick counter, here full operating frequency (== 64MHz) */
         syst.set_clock_source(Core);
 
-        /* Set reload value, i.e. timer delay 32 MHz/8 Mcounts == 4Hz or 250 ms */
+        /* Set reload value, i.e. timer delay 8 MHz/8 Mcounts == 1Hz or 1 s */
         syst.set_reload(256_000 - 1);
 
         /* Start counter */
         syst.enable_counter();
 
-        let x = unsafe { HardFault_Veneer };
-        /* Turn PA1 on a million times in a row */
-        for _ in 0..x {
-            /* Start interrupt generation */
-            syst.enable_interrupt();
-        }
+        /* Start interrupt generation */
+        syst.enable_interrupt();
 
         loop {}
     }
@@ -86,8 +82,4 @@ fn SysTick() -> ! {
             *state += 1;
         }
     });
-}
-
-extern "C" {
-    static HardFault_Veneer: u32;
 }

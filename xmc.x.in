@@ -36,6 +36,7 @@ EXTERN(DefaultHandler);
 
 PROVIDE(NonMaskableInt = DefaultHandler);
 EXTERN(HardFaultTrampoline);
+EXTERN(HardFault_Veneer);
 PROVIDE(MemoryManagement = DefaultHandler);
 PROVIDE(BusFault = DefaultHandler);
 PROVIDE(UsageFault = DefaultHandler);
@@ -72,12 +73,14 @@ SECTIONS
     KEEP(*(.vector_table.reset_vector)); /* this is the `__RESET_VECTOR` symbol */
     __reset_vector = .;
 
+    KEEP(*(.XmcClockConfig));
+    __clock_config = .;
     /* Exceptions */
-    KEEP(*(.vector_table.exceptions)); /* this is the `__EXCEPTIONS` symbol */
-    __eexceptions = .;
+    /* KEEP(*(.vector_table.exceptions)); */ /* this is the `__EXCEPTIONS` symbol */
+    /* __eexceptions = .; */
 
     /* Device specific interrupts */
-    KEEP(*(.vector_table.interrupts)); /* this is the `__INTERRUPTS` symbol */
+    /* KEEP(*(.vector_table.interrupts)); */ /* this is the `__INTERRUPTS` symbol */
   } > FLASH
 
   PROVIDE(_stext = ADDR(.vector_table) + SIZEOF(.vector_table));
@@ -113,6 +116,7 @@ SECTIONS
   /* This only neeeds to start at 0x2000 000C, but that complicates linking */
   /* And the space isn't that useful, so we just fill it up in asm */
     KEEP(*(.XmcVeneerCode));
+    __xmc_veneer = .;
     . = ALIGN(4); /* section size must be multiple of 4. See startup_XMC_xxxx.S file */
     *(.data .data.*);
 
@@ -159,6 +163,9 @@ SECTIONS
   {
     /* Unused exception related info that only wastes space */
     *(.ARM.exidx.*);
+    /* The interrupt table which isn't needed anymore */
+    *(.vector_table.exceptions);
+    *(.vector_table.interrupts);
   }
 }
 
@@ -188,16 +195,11 @@ BUG(cortex-m-rt): start of .heap is not 4-byte aligned");
 ASSERT(__reset_vector == ADDR(.vector_table) + 0x8, "
 BUG(cortex-m-rt): the reset vector is missing");
 
-ASSERT(__eexceptions == ADDR(.vector_table) + 0x40, "
-BUG(cortex-m-rt): the exception vectors are missing");
+ASSERT(__clock_config > ADDR(.vector_table) + 0x8, "
+BUG(cortex-m-rt): the clock config is missing");
 
-ASSERT(SIZEOF(.vector_table) > 0x40, "
-ERROR(cortex-m-rt): The interrupt vectors are missing.
-Possible solutions, from most likely to less likely:
-- Link to a svd2rust generated device crate
-- Disable the 'device' feature of cortex-m-rt to build a generic application (a dependency
-may be enabling it)
-- Supply the interrupt handlers yourself. Check the documentation for details.");
+ASSERT(__xmc_veneer > ADDR(.data) + 0x8, "
+BUG(cortex-m-rt): the veneer code is missing");
 
 /* ## .text */
 ASSERT(ADDR(.vector_table) + SIZEOF(.vector_table) <= _stext, "

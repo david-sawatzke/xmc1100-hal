@@ -27,7 +27,7 @@ fn main() -> ! {
 
             let rcc = Rcc {
                 clocks: Clocks {
-                    sysclk: MegaHertz(32).into(),
+                    sysclk: MegaHertz(8).into(),
                 },
             };
             /* Get delay provider */
