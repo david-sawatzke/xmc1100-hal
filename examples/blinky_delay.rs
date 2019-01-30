@@ -24,7 +24,7 @@ fn main() -> ! {
         let mut led = port1.p1_1.into_push_pull_output();
 
         let clocks = Clocks {
-            sysclk: MegaHertz(32).into(),
+            sysclk: MegaHertz(8).into(),
         };
         /* Get delay provider */
         let mut delay = Delay::new(cp.SYST, clocks);
