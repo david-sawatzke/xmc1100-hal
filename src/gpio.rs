@@ -2,6 +2,7 @@
 
 use core::marker::PhantomData;
 
+// TODO Implement marker for af with PushPull or OpenDrain
 /// Extension trait to split a GPIO peripheral in independent pins and registers
 pub trait GpioExt {
     /// The parts to split the GPIO into
@@ -17,6 +18,19 @@ trait GpioRegExt {
     fn is_set_low(&self, pos: u8) -> bool;
     fn set_high(&self, pos: u8);
     fn set_low(&self, pos: u8);
+}
+
+pub struct AF0;
+pub struct AF1;
+pub struct AF2;
+pub struct AF3;
+pub struct AF4;
+pub struct AF5;
+pub struct AF6;
+pub struct AF7;
+
+pub struct Alternate<MODE> {
+    _mode: PhantomData<MODE>,
 }
 
 /// Input mode (type state)
@@ -82,14 +96,15 @@ macro_rules! gpio {
         pub mod $gpiox {
             use core::marker::PhantomData;
 
-            use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin, toggleable};
             use crate::xmc1100::$GPIOX;
+            use embedded_hal::digital::{toggleable, InputPin, OutputPin, StatefulOutputPin};
 
             use cortex_m::interrupt::CriticalSection;
 
             use super::{
                 Floating, GpioExt, Input, OpenDrain, Output,
                 PullDown, PullUp, PushPull,
+                Alternate, AF0, AF1, AF2, AF3, AF4, AF5, AF6, AF7,
                 GpioRegExt,
             };
 
@@ -182,6 +197,71 @@ macro_rules! gpio {
                                 w.$pcx().value9()
                             });
                         }
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    // TODO This always configures it as PushPull
+                    fn set_alternate_mode(&mut self, mode: u8) {
+                        debug_assert!(mode < 0b1000);
+                        unsafe {
+                            &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
+                                w.$pcx().bits(0b10000 | mode)
+                            });
+                        }
+                    }
+
+                    pub fn into_alternate_af0(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF0>> {
+                        self.set_alternate_mode(0);
+                        $PXi { _mode: PhantomData }
+                    }
+                    pub fn into_alternate_af1(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF1>> {
+                        self.set_alternate_mode(1);
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_alternate_af2(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF2>> {
+                        self.set_alternate_mode(2);
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_alternate_af3(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF3>> {
+                        self.set_alternate_mode(3);
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_alternate_af4(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF4>> {
+                        self.set_alternate_mode(4);
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_alternate_af5(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF5>> {
+                        self.set_alternate_mode(5);
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_alternate_af6(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF6>> {
+                        self.set_alternate_mode(6);
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_alternate_af7(
+                        mut self, _cs: &CriticalSection
+                    ) -> $PXi<Alternate<AF7>> {
+                        self.set_alternate_mode(7);
                         $PXi { _mode: PhantomData }
                     }
 
