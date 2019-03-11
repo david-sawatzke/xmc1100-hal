@@ -7,4 +7,5 @@ pub mod delay;
 pub mod gpio;
 pub mod prelude;
 pub mod rcc;
+pub mod serial;
 pub mod time;
