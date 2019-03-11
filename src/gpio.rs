@@ -86,6 +86,7 @@ macro_rules! gpio_trait {
 
 gpio_trait!(port0);
 gpio_trait!(port1);
+gpio_trait!(port2);
 
 #[allow(unused)]
 macro_rules! gpio {
@@ -340,4 +341,19 @@ gpio!(PORT1, port1, [
     P1_4: (p1_4, 4, Input<Floating>, iocr4, pc4),
     P1_5: (p1_5, 5, Input<Floating>, iocr4, pc5),
     P1_6: (p1_6, 6, Input<Floating>, iocr4, pc6),
+]);
+
+gpio!(PORT2, port2, [
+    P2_0: (p2_0, 0, Input<Floating>, iocr0, pc0),
+    P2_1: (p2_1, 1, Input<Floating>, iocr0, pc1),
+    P2_2: (p2_2, 2, Input<Floating>, iocr0, pc2),
+    P2_3: (p2_3, 3, Input<Floating>, iocr0, pc3),
+    P2_4: (p2_4, 4, Input<Floating>, iocr4, pc4),
+    P2_5: (p2_5, 5, Input<Floating>, iocr4, pc5),
+    P2_6: (p2_6, 6, Input<Floating>, iocr4, pc6),
+    P2_7: (p2_7, 7, Input<Floating>, iocr4, pc7),
+    P2_8: (p2_8, 8, Input<Floating>, iocr8, pc8),
+    P2_9: (p2_9, 9, Input<Floating>, iocr8, pc9),
+    P2_10: (p2_10, 10, Input<Floating>, iocr8, pc10),
+    P2_11: (p2_11, 11, Input<Floating>, iocr8, pc11),
 ]);
