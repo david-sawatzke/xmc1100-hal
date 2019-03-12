@@ -122,9 +122,9 @@ macro_rules! usart {
         $(
             use crate::xmc1100::$USART;
             impl<TXPIN, RXPIN> Serial<$USART, TXPIN, RXPIN>
-            where
-                TXPIN: TxPin<$USART>,
-                RXPIN: RxPin<$USART>,
+            // where
+            //     TXPIN: TxPin<$USART>,
+            //     RXPIN: RxPin<$USART>,
             {
                 /// Creates a new serial instance
                 pub fn $usart(usart: $USART, pins: (TXPIN, RXPIN), baud_rate: Bps) -> Self {
@@ -261,8 +261,8 @@ macro_rules! usart {
 }
 
 usart! {
-    USIC0_CH0: (usart2, usart2tx, usart2rx,usart2en, apb1enr),
-    USIC0_CH1: (usart1, usart1tx, usart1rx, usart1en, apb2enr),
+    USIC0_CH0: (usic0_ch0, usart2tx, usart2rx,usart2en, apb1enr),
+    USIC0_CH1: (usic0_ch1, usart1tx, usart1rx, usart1en, apb2enr),
 }
 
 impl<USART> embedded_hal::serial::Read<u8> for Rx<USART>
@@ -311,7 +311,7 @@ where
 impl<USART, TXPIN, RXPIN> embedded_hal::serial::Write<u8> for Serial<USART, TXPIN, RXPIN>
 where
     USART: Deref<Target = SerialRegisterBlock>,
-    TXPIN: TxPin<USART>,
+    // TXPIN: TxPin<USART>,
 {
     type Error = void::Void;
 
@@ -370,7 +370,7 @@ where
 impl<USART, TXPIN, RXPIN> Write for Serial<USART, TXPIN, RXPIN>
 where
     USART: Deref<Target = SerialRegisterBlock>,
-    TXPIN: TxPin<USART>,
+    // TXPIN: TxPin<USART>,
 {
     fn write_str(&mut self, s: &str) -> Result {
         s.as_bytes()
