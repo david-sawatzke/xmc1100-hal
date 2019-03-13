@@ -61,8 +61,8 @@ pub struct PushPull;
 use embedded_hal::digital::{toggleable, InputPin, OutputPin, StatefulOutputPin};
 
 macro_rules! gpio_trait {
-    ($gpiox:ident) => {
-        impl GpioRegExt for crate::xmc1100::$gpiox::RegisterBlock {
+    ($portx:ident) => {
+        impl GpioRegExt for crate::xmc1100::$portx::RegisterBlock {
             fn is_low(&self, pos: u8) -> bool {
                 self.in_.read().bits() & (1 << pos) != 0
             }
@@ -88,16 +88,17 @@ gpio_trait!(port0);
 gpio_trait!(port1);
 gpio_trait!(port2);
 
+// TODO Find a nicer way to handle port2 being analog by default
 #[allow(unused)]
 macro_rules! gpio {
-    ($GPIOX:ident, $gpiox:ident, [
+    ($PORTX:ident, $portx:ident, $analog_hack:block, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty, $iocrx:ident, $pcx:ident),)+
     ]) => {
         /// GPIO
-        pub mod $gpiox {
+        pub mod $portx {
             use core::marker::PhantomData;
 
-            use crate::xmc1100::$GPIOX;
+            use crate::xmc1100::$PORTX;
             use embedded_hal::digital::{toggleable, InputPin, OutputPin, StatefulOutputPin};
 
             use cortex_m::interrupt::CriticalSection;
@@ -117,10 +118,11 @@ macro_rules! gpio {
                 )+
             }
 
-            impl GpioExt for $GPIOX {
+            impl GpioExt for $PORTX {
                 type Parts = Parts;
 
                 fn split(self) -> Parts {
+                    $analog_hack
                     Parts {
                         $(
                             $pxi: $PXi { _mode: PhantomData },
@@ -142,7 +144,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Input<Floating>> {
                         unsafe {
-                            &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
+                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value1()
                             });
                         }
@@ -155,7 +157,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                         ) -> $PXi<Input<PullDown>> {
                         unsafe {
-                            &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
+                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value2()
                             });
                         }
@@ -168,7 +170,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Input<PullUp>> {
                         unsafe {
-                            &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
+                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value3()
                             });
                         }
@@ -181,7 +183,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Output<OpenDrain>> {
                         unsafe {
-                            &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
+                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value17()
                             });
                         }
@@ -194,7 +196,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Output<PushPull>> {
                         unsafe {
-                            &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
+                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value9()
                             });
                         }
@@ -205,7 +207,7 @@ macro_rules! gpio {
                     fn set_alternate_mode(&mut self, mode: u8) {
                         debug_assert!(mode < 0b1000);
                         unsafe {
-                            &(*$GPIOX::ptr()).$iocrx.modify(|_, w| {
+                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().bits(0b10000 | mode)
                             });
                         }
@@ -274,17 +276,17 @@ macro_rules! gpio {
                     }
 
                     fn is_set_low(&self) -> bool {
-                        unsafe { (*$GPIOX::ptr()).is_set_low($i) }
+                        unsafe { (*$PORTX::ptr()).is_set_low($i) }
                     }
                 }
 
                 impl<MODE> OutputPin for $PXi<Output<MODE>> {
                     fn set_high(&mut self) {
-                        unsafe { (*$GPIOX::ptr()).set_high($i) }
+                        unsafe { (*$PORTX::ptr()).set_high($i) }
                     }
 
                     fn set_low(&mut self) {
-                        unsafe { (*$GPIOX::ptr()).set_low($i) }
+                        unsafe { (*$PORTX::ptr()).set_low($i) }
                     }
                 }
 
@@ -296,7 +298,7 @@ macro_rules! gpio {
                     }
 
                     fn is_low(&self) -> bool {
-                        unsafe { (*$GPIOX::ptr()).is_low($i) }
+                        unsafe { (*$PORTX::ptr()).is_low($i) }
                     }
                 }
 
@@ -306,7 +308,7 @@ macro_rules! gpio {
                     }
 
                     fn is_low(&self) -> bool {
-                        unsafe { (*$GPIOX::ptr()).is_low($i) }
+                        unsafe { (*$PORTX::ptr()).is_low($i) }
                     }
                 }
             )+
@@ -314,7 +316,7 @@ macro_rules! gpio {
     }
 }
 
-gpio!(PORT0, port0, [
+gpio!(PORT0, port0, {}, [
     P0_0: (p0_0, 0, Input<Floating>, iocr0, pc0),
     P0_1: (p0_1, 1, Input<Floating>, iocr0, pc1),
     P0_2: (p0_2, 2, Input<Floating>, iocr0, pc2),
@@ -333,7 +335,7 @@ gpio!(PORT0, port0, [
     P0_15: (p0_15, 15, Input<Floating>, iocr12, pc15),
 ]);
 
-gpio!(PORT1, port1, [
+gpio!(PORT1, port1, {}, [
     P1_0: (p1_0, 0, Input<Floating>, iocr0, pc0),
     P1_1: (p1_1, 1, Input<Floating>, iocr0, pc1),
     P1_2: (p1_2, 2, Input<Floating>, iocr0, pc2),
@@ -343,7 +345,8 @@ gpio!(PORT1, port1, [
     P1_6: (p1_6, 6, Input<Floating>, iocr4, pc6),
 ]);
 
-gpio!(PORT2, port2, [
+gpio!(PORT2, port2, {unsafe {&(*PORT2::ptr()).pdisc.write(|w| w.bits(0));}
+}, [
     P2_0: (p2_0, 0, Input<Floating>, iocr0, pc0),
     P2_1: (p2_1, 1, Input<Floating>, iocr0, pc1),
     P2_2: (p2_2, 2, Input<Floating>, iocr0, pc2),
