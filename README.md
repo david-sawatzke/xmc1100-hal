@@ -1,33 +1,33 @@
 # xmc1100-hal
 
-A hal for xmc1100 chips, currently intended for the XMC2GO kit. Large portions
+A hal for xmc1100 chips, primarily intended for the XMC2GO kit. Large portions
 of this hal are based on the
 [_stm32f0xx-hal_](https://github.com/stm32-rs/stm32f0xx-hal) hal.
 
 ## Flashing
 
-The XMC2Go uses a JLink debug probe. That means you'll have to install the
-segger tools from https://segger.com. Additionally also install arm-none-eabi-gdb.
+The XMC2Go includes a JLink debug probe. That means can either use the segger
+tools from https://segger.com or [openocd](http://openocd.org/).
+Additionally also install arm-none-eabi-gdb. I am using openocd here.
 
-First you need to start the JLinkGDBServer
+First you need to start openocd
 
 ``` sh
-JLinkGDBServerCLExe  -device XMC1100-0064 -if SWD
+$ openocd
 ```
 
 The start gdb with the required elf file
 
 ``` sh
-arm-none-eabi-gdb <YourElfFile>
+$ arm-none-eabi-gdb <YourElfFile>
 ```
 
-And finally, connect to the gdb server and flash the micro in gdb
+And finally, connect to the gdb server and flash the chip in gdb
 
 ``` gdb
-target remote localhost:2331
-monitor reset
-load
-c
+(gdb) target extended-rremote localhost:3333
+(gdb) load
+(gdb) c
 ```
 
 ## Interrupts/Exceptions
@@ -52,15 +52,11 @@ That means this crate has to duplicate some functionality from `cortex-m-rt`,
 like the linker file stuff and also does interrupt handlers in assembly (for
 guranteed size). These new interrupt handlers just emulate the style of normal
 cortex-m interrupts, like Infineon does it in their
-[XMC-for-Arduino](https://github.com/Infineon/XMC-for-Arduino/) project.
-
-This doesn't even properly work yet.
+[XMC-for-Arduino](https://github.com/Infineon/XMC-for-Arduino/) project, so end
+users shouldn't notice anything other than the increased interrupt latency.
 
 ## TODO
-- The interrupt section still gets optimized out
-- Peripherals (everything)
-- JLink usage/scripting with OpenOCD
-- Clock config in flash
+- More Peripherals
 - RT is always on by default. Do we want to keep it that way?
   (It's needed so the exceptions.s has all symbols defined)
 
