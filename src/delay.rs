@@ -13,7 +13,7 @@ use cast::{u16, u32};
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 
-use crate::rcc::Rcc;
+use crate::scu::Scu;
 use embedded_hal::blocking::delay::{DelayMs, DelayUs};
 
 /// System timer (SysTick) as a delay provider
@@ -28,15 +28,15 @@ impl Delay {
     /// Configures the system timer (SysTick) as a delay provider
     /// As access to the count register is possible without a reference, we can
     /// just drop it
-    pub fn new(mut syst: SYST, rcc: &Rcc) -> Delay {
+    pub fn new(mut syst: SYST, scu: &Scu) -> Delay {
         syst.set_clock_source(SystClkSource::Core);
 
         syst.set_reload(SYSTICK_RANGE - 1);
         syst.clear_current();
         syst.enable_counter();
         // TODO Check on which clock we're running
-        assert!(rcc.clocks.sysclk().0 >= 1_000_000);
-        let scale = rcc.clocks.sysclk().0 / 1_000_000;
+        assert!(scu.clocks.sysclk().0 >= 1_000_000);
+        let scale = scu.clocks.sysclk().0 / 1_000_000;
 
         Delay { scale }
     }

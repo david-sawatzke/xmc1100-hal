@@ -17,8 +17,6 @@ use cortex_m_rt::{entry, exception};
 
 use core::cell::RefCell;
 use core::ops::DerefMut;
-use xmc1100_hal::rcc::Clocks;
-use xmc1100_hal::time::MegaHertz;
 
 static PORT: Mutex<RefCell<Option<port1::P1_1<Output<PushPull>>>>> = Mutex::new(RefCell::new(None));
 
@@ -26,10 +24,6 @@ static PORT: Mutex<RefCell<Option<port1::P1_1<Output<PushPull>>>>> = Mutex::new(
 fn main() -> ! {
     if let (Some(p), Some(cp)) = (xmc1100::Peripherals::take(), Peripherals::take()) {
         let port1 = p.PORT1.split();
-
-        let _clocks = Clocks {
-            sysclk: MegaHertz(8).into(),
-        };
 
         let mut syst = cp.SYST;
 

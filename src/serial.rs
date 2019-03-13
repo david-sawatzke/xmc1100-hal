@@ -66,7 +66,7 @@ use core::{
 
 use embedded_hal::prelude::*;
 
-use crate::{gpio::*, rcc::Rcc, time::Bps};
+use crate::{gpio::*, scu::Scu, time::Bps};
 
 use core::marker::PhantomData;
 
@@ -127,9 +127,9 @@ macro_rules! usart {
             //     RXPIN: RxPin<$USART>,
             {
                 /// Creates a new serial instance
-                pub fn $usart(usart: $USART, pins: (TXPIN, RXPIN), baud_rate: Bps) -> Self {
+                pub fn $usart(usart: $USART, pins: (TXPIN, RXPIN), baud_rate: Bps, scu: &mut Scu) -> Self {
                     let mut serial = Serial { usart, pins };
-                    serial.configure(baud_rate);
+                    serial.configure(baud_rate, scu);
                     // TODO Enable transmission and receiving
                     serial
                 }
@@ -140,13 +140,13 @@ macro_rules! usart {
                 TXPIN: TxPin<$USART>,
             {
                 /// Creates a new tx-only serial instance
-                pub fn $usarttx(usart: $USART, txpin: TXPIN, baud_rate: Bps) -> Self {
+                pub fn $usarttx(usart: $USART, txpin: TXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
                     let rxpin = ();
                     let mut serial = Serial {
                         usart,
                         pins: (txpin, rxpin),
                     };
-                    serial.configure(baud_rate);
+                    serial.configure(baud_rate, scu);
                     // TODO Enable transmission
                     serial
                 }
@@ -157,23 +157,24 @@ macro_rules! usart {
                 RXPIN: RxPin<$USART>,
             {
                 /// Creates a new tx-only serial instance
-                pub fn $usartrx(usart: $USART, rxpin: RXPIN, baud_rate: Bps) -> Self {
+                pub fn $usartrx(usart: $USART, rxpin: RXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
                     let txpin = ();
                     let mut serial = Serial {
                         usart,
                         pins: (txpin, rxpin),
                     };
-                    serial.configure(baud_rate);
+                    serial.configure(baud_rate, scu);
                     // TODO Enable receiving
                     serial
                 }
             }
 
             impl<TXPIN, RXPIN> Serial<$USART, TXPIN, RXPIN> {
-                fn configure(&mut self, _baud_rate: Bps) {
+                fn configure(&mut self, _baud_rate: Bps, scu: &mut Scu) {
                     use core::mem::transmute;
                     use xmc1100::usic0_ch0::{PCR, PCR_ASCMODE};
-                    // TODO Maybe enable clock & reset?
+                    // Disable clock gating
+                    scu.scu_clk.cgatclr0.write(|w| w.usic0().set_bit());
                     // XMC 1100 with 115200 8 n
                     // Enable module
                     self.usart
