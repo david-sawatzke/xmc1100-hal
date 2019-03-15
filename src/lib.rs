@@ -9,3 +9,4 @@ pub mod prelude;
 pub mod scu;
 pub mod serial;
 pub mod time;
+pub mod usic;

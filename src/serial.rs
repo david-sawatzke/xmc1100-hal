@@ -170,7 +170,7 @@ macro_rules! usart {
             }
 
             impl<TXPIN, RXPIN> Serial<$USART, TXPIN, RXPIN> {
-                fn configure(&mut self, _baud_rate: Bps, scu: &mut Scu) {
+                fn configure(&mut self, baud: Bps, scu: &mut Scu) {
                     use core::mem::transmute;
                     use xmc1100::usic0_ch0::{PCR, PCR_ASCMODE};
                     // Disable clock gating
@@ -182,26 +182,8 @@ macro_rules! usart {
                         .write(|w| w.moden().set_bit().bpmoden().set_bit());
                     // Force a read, recommended by the datasheet
                     self.usart.kscfg.read();
-                    // Configure the fractional divider
-                    // fFD = fPB
-                    unsafe { self.usart.fdr.write(|w| w.dm().value3().step().bits(590)) };
-                    // Use the fractional divider as the clock source and an additional divider
-                    // Configure baud rate generator
-                    // BAUDRATE = fCTQIN/(BRG.PCTQ x BRG.DCTQ)
-                    // CLKSEL = 0 (fPIN = fFD), CTQSEL = 00b (fCTQIN = fPDIV), PPPEN = 0
-                    // (fPPP=fPIN)
-                    unsafe {
-                        self.usart.brg.write(|w| {
-                            w.clksel()
-                                .value1()
-                                .pctq()
-                                .bits(0)
-                                .dctq()
-                                .bits(9)
-                                .pdiv()
-                                .bits(3)
-                        })
-                    };
+                    // Set the timing with oversampling of 16
+                    crate::usic::set_baudrate(&mut self.usart, scu, baud, 16).unwrap();
                     // USIC Shift Control
                     // SCTR.FLE = 8 (Frame Length)
                     // SCTR.WLE = 8 (Word Length)
@@ -226,7 +208,6 @@ macro_rules! usart {
                     // PCR.STPB = 0 (1x Stop bit)
                     // PCR.SP = 5 (Sample Point)
                     // PCR.PL = 0 (Pulse Length is equal to the bit length)
-
                     unsafe {
                         (*transmute::<*const PCR, *const PCR_ASCMODE>(&self.usart.pcr))
                             .write(|w| w.smd().set_bit().sp().bits(9))
@@ -254,7 +235,6 @@ macro_rules! usart {
                     // CCR.PM = 00 ( Disable parity generation)
                     // CCR.MODE = 2 (ASC mode enabled. Note: 0 (USIC channel is disabled))
                     self.usart.ccr.write(|w| w.mode().value3().pm().value1());
-                    // TODO digital mode for pins
                 }
             }
         )+
