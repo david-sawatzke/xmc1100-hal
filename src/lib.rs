@@ -5,6 +5,7 @@ pub use xmc1100;
 
 pub mod delay;
 pub mod gpio;
+pub mod pin_mappings;
 pub mod prelude;
 pub mod scu;
 pub mod serial;

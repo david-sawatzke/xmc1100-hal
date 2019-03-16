@@ -67,7 +67,7 @@ use core::{
 
 use embedded_hal::prelude::*;
 
-use crate::{gpio::*, scu::Scu, time::Bps};
+use crate::{gpio::*, scu::Scu, time::Bps, usic::*};
 
 use core::marker::PhantomData;
 
@@ -89,7 +89,6 @@ pub enum Error {
     _Extensible,
 }
 
-pub trait TxPin<USART> {}
 pub trait RxPin<USART> {}
 
 /// Serial abstraction
@@ -124,8 +123,8 @@ macro_rules! usart {
         $(
             use crate::xmc1100::$USART;
             impl<TXPIN, RXPIN> Serial<$USART, TXPIN, RXPIN>
-            // where
-            //     TXPIN: TxPin<$USART>,
+            where
+                TXPIN: Dout0Pin<$USART>,
             //     RXPIN: RxPin<$USART>,
             {
                 /// Creates a new serial instance
@@ -139,7 +138,7 @@ macro_rules! usart {
 
             impl<TXPIN> Serial<$USART, TXPIN, ()>
             where
-                TXPIN: TxPin<$USART>,
+                TXPIN: Dout0Pin<$USART>,
             {
                 /// Creates a new tx-only serial instance
                 pub fn $usarttx(usart: $USART, txpin: TXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
@@ -232,7 +231,6 @@ macro_rules! usart {
                     unsafe { self.usart
                         .rbctr
                         .write(|w| w.size().value6().dptr().bits(32)) };
-                    // TODO UART_TX AF6 P2.1 as output controlled by ALT6 = U0C0.DOUT0
                     // Configuration of Channel Control Register
                     // CCR.PM = 00 ( Disable parity generation)
                     // CCR.MODE = 2 (ASC mode enabled. Note: 0 (USIC channel is disabled))
@@ -294,7 +292,7 @@ where
 impl<USART, TXPIN, RXPIN> embedded_hal::serial::Write<u8> for Serial<USART, TXPIN, RXPIN>
 where
     USART: Deref<Target = SerialRegisterBlock>,
-    // TXPIN: TxPin<USART>,
+    TXPIN: Dout0Pin<USART>,
 {
     type Error = void::Void;
 
@@ -318,7 +316,7 @@ where
     /// This is required for sending/receiving
     pub fn split(self) -> (Tx<USART>, Rx<USART>)
     where
-        TXPIN: TxPin<USART>,
+        TXPIN: Dout0Pin<USART>,
         RXPIN: RxPin<USART>,
     {
         (
@@ -353,7 +351,7 @@ where
 impl<USART, TXPIN, RXPIN> Write for Serial<USART, TXPIN, RXPIN>
 where
     USART: Deref<Target = SerialRegisterBlock>,
-    // TXPIN: TxPin<USART>,
+    TXPIN: Dout0Pin<USART>,
 {
     fn write_str(&mut self, s: &str) -> Result {
         s.as_bytes()

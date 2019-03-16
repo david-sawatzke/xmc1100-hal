@@ -2,6 +2,7 @@ use crate::{scu::Scu, time::Bps};
 use core::ops::Deref;
 use xmc1100;
 
+pub trait Dout0Pin<USIC> {}
 // Common register
 type UsicRegisterBlock = xmc1100::usic0_ch0::RegisterBlock;
 

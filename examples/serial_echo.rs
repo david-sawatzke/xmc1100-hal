@@ -30,7 +30,7 @@ fn main() -> ! {
             let tx = port2.p2_1.into_alternate_af6(&cs);
 
             // Create usart
-            let mut serial = Serial::usic0_ch0(p.USIC0_CH0, ((), ()), Bps(9600), &mut scu);
+            let mut serial = Serial::usic0_ch0(p.USIC0_CH0, (tx, ()), Bps(9600), &mut scu);
             loop {
                 // Wait for reception of a single byte
                 let received = nb::block!(serial.read()).unwrap();
