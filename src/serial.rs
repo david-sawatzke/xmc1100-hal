@@ -60,6 +60,7 @@
 
 use core::{
     fmt::{Result, Write},
+    mem::transmute,
     ops::Deref,
     ptr,
 };
@@ -71,6 +72,7 @@ use crate::{gpio::*, scu::Scu, time::Bps};
 use core::marker::PhantomData;
 
 use xmc1100;
+use xmc1100::usic0_ch0::{PSR, PSR_ASCMODE};
 
 /// Serial error
 #[derive(Debug)]
@@ -261,7 +263,7 @@ where
 impl<USART, TXPIN, RXPIN> embedded_hal::serial::Read<u8> for Serial<USART, TXPIN, RXPIN>
 where
     USART: Deref<Target = SerialRegisterBlock>,
-    RXPIN: RxPin<USART>,
+    // RXPIN: RxPin<USART>,
 {
     type Error = Error;
 
@@ -363,16 +365,13 @@ where
 
 /// Ensures that none of the previously written words are still buffered
 fn flush(usart: *const SerialRegisterBlock) -> nb::Result<(), void::Void> {
-    // TODO
-    // // NOTE(unsafe) atomic read with no side effects
-    // let isr = unsafe { (*usart).isr.read() };
-
-    // if isr.tc().bit_is_set() {
-    //     Ok(())
-    // } else {
-    //     Err(nb::Error::WouldBlock)
-    // }
-    Err(nb::Error::WouldBlock)
+    // NOTE(unsafe) atomic read with no side effects
+    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usart).psr)).read() };
+    if psr.txidle().bit_is_set() {
+        Ok(())
+    } else {
+        Err(nb::Error::WouldBlock)
+    }
 }
 
 /// Tries to write a byte to the UART
@@ -392,23 +391,23 @@ fn write(usart: *const SerialRegisterBlock, byte: u8) -> nb::Result<(), void::Vo
 
 /// Tries to read a byte from the UART
 fn read(usart: *const SerialRegisterBlock) -> nb::Result<u8, Error> {
-    // TODO Error out for now
-    Err(nb::Error::WouldBlock)
-    // // NOTE(unsafe) atomic read with no side effects
-    // let isr = unsafe { (*usart).isr.read() };
-
-    // Err(if isr.pe().bit_is_set() {
-    //     nb::Error::Other(Error::Parity)
-    // } else if isr.fe().bit_is_set() {
-    //     nb::Error::Other(Error::Framing)
-    // } else if isr.nf().bit_is_set() {
-    //     nb::Error::Other(Error::Noise)
-    // } else if isr.ore().bit_is_set() {
-    //     nb::Error::Other(Error::Overrun)
-    // } else if isr.rxne().bit_is_set() {
-    //     // NOTE(read_volatile) see `write_volatile` below
-    //     return Ok(unsafe { ptr::read_volatile(&(*usart).rdr as *const _ as *const _) });
-    // } else {
-    //     nb::Error::WouldBlock
-    // })
+    // NOTE(unsafe) atomic read with no side effects
+    let trbsr = unsafe { (*usart).trbsr.read() };
+    // NOTE(unsafe) atomic read with no side effects
+    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usart).psr)).read() };
+    Err(
+        // TODO Detect Parity error
+        if psr.fer0().bit_is_set() || psr.fer1().bit_is_set() {
+            nb::Error::Other(Error::Framing)
+        } else if psr.rns().bit_is_set() {
+            nb::Error::Other(Error::Noise)
+        } else if trbsr.rfull().bit_is_set() {
+            nb::Error::Other(Error::Overrun)
+        } else if trbsr.rempty().bit_is_clear() {
+            // NOTE(read_volatile) see `write_volatile` below
+            return Ok(unsafe { ptr::read_volatile(&(*usart).outr as *const _ as *const _) });
+        } else {
+            nb::Error::WouldBlock
+        },
+    )
 }

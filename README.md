@@ -30,6 +30,13 @@ And finally, connect to the gdb server and flash the chip in gdb
 (gdb) c
 ```
 
+## FAQ
+- My serial communication corrupts/returns errors/etc. Why?
+
+  The internal clock doesn't seem to be great. On the xmc2go, this can lead to
+  timing errors. You can also observe these in the arduino implementation with
+  high baudrates (115200 baud), although they don't error out
+
 ## Interrupts/Exceptions
 [Rant time]
 
