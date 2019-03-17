@@ -1,9 +1,9 @@
-//! API for the integrated USART ports
+//! API for the integrated USIC ports
 //!
 //! This only implements the usual asynchronous bidirectional 8-bit transfers.
 //!
 //! It's possible to use a read-only/write-only serial implementation with
-//! `usartXrx`/`usartXtx`.
+//! `usicXrx`/`usicXtx`.
 //!
 //! # Examples
 //! Echo
@@ -24,7 +24,7 @@
 //!     let tx = gpioa.pa9.into_alternate_af1(cs);
 //!     let rx = gpioa.pa10.into_alternate_af1(cs);
 //!
-//!     let mut serial = Serial::usart1(p.USART1, (tx, rx), 115_200.bps(), &mut rcc);
+//!     let mut serial = Serial::usic1(p.USIC1, (tx, rx), 115_200.bps(), &mut rcc);
 //!
 //!     loop {
 //!         let received = block!(serial.read()).unwrap();
@@ -50,7 +50,7 @@
 //!
 //!     let tx = gpioa.pa9.into_alternate_af1(cs);
 //!
-//!     let mut serial = Serial::usart1tx(p.USART1, tx, 115_200.bps(), &mut rcc);
+//!     let mut serial = Serial::usic1tx(p.USIC1, tx, 115_200.bps(), &mut rcc);
 //!
 //!     loop {
 //!         serial.write_str("Hello World!\r\n");
@@ -91,8 +91,8 @@ pub enum Error {
 }
 
 /// Serial abstraction
-pub struct Serial<USART, TXPIN, RXPIN> {
-    usart: USART,
+pub struct Serial<USIC, TXPIN, RXPIN> {
+    usic: USIC,
     pins: (TXPIN, RXPIN),
 }
 
@@ -100,53 +100,53 @@ pub struct Serial<USART, TXPIN, RXPIN> {
 type SerialRegisterBlock = crate::xmc1100::usic0_ch0::RegisterBlock;
 
 /// Serial receiver
-pub struct Rx<USART> {
-    usart: *const SerialRegisterBlock,
-    _instance: PhantomData<USART>,
+pub struct Rx<USIC> {
+    usic: *const SerialRegisterBlock,
+    _instance: PhantomData<USIC>,
 }
 
 // NOTE(unsafe) Required to allow protected shared access in handlers
-unsafe impl<USART> Send for Rx<USART> {}
+unsafe impl<USIC> Send for Rx<USIC> {}
 
 /// Serial transmitter
-pub struct Tx<USART> {
-    usart: *const SerialRegisterBlock,
-    _instance: PhantomData<USART>,
+pub struct Tx<USIC> {
+    usic: *const SerialRegisterBlock,
+    _instance: PhantomData<USIC>,
 }
 
 // NOTE(unsafe) Required to allow protected shared access in handlers
-unsafe impl<USART> Send for Tx<USART> {}
+unsafe impl<USIC> Send for Tx<USIC> {}
 
-macro_rules! usart {
-    ($($USART:ident: ($usart:ident, $usarttx:ident, $usartrx:ident),)+) => {
+macro_rules! serial {
+    ($($USIC:ident: ($usic:ident, $usictx:ident, $usicrx:ident),)+) => {
         $(
-            use crate::xmc1100::$USART;
-            impl<TXPIN, RXPIN> Serial<$USART, TXPIN, RXPIN>
+            use crate::xmc1100::$USIC;
+            impl<TXPIN, RXPIN> Serial<$USIC, TXPIN, RXPIN>
             where
-                TXPIN: Dout0Pin<$USART>,
-                RXPIN: Dx0Pin<$USART>,
+                TXPIN: Dout0Pin<$USIC>,
+                RXPIN: Dx0Pin<$USIC>,
             {
                 /// Creates a new serial instance
-                pub fn $usart(usart: $USART, pins: (TXPIN, RXPIN), baud_rate: Bps, scu: &mut Scu) -> Self {
+                pub fn $usic(usic: $USIC, pins: (TXPIN, RXPIN), baud_rate: Bps, scu: &mut Scu) -> Self {
                     let pin_num = RXPIN::number();
-                    let mut serial = Serial { usart, pins };
+                    let mut serial = Serial { usic, pins };
                     serial.configure(baud_rate, scu);
                     // Set rx pin
-                    serial.usart.dx0cr.write(|w| w.dsel().bits(pin_num));
+                    serial.usic.dx0cr.write(|w| w.dsel().bits(pin_num));
                     // TODO Enable transmission and receiving
                     serial
                 }
             }
 
-            impl<TXPIN> Serial<$USART, TXPIN, ()>
+            impl<TXPIN> Serial<$USIC, TXPIN, ()>
             where
-                TXPIN: Dout0Pin<$USART>,
+                TXPIN: Dout0Pin<$USIC>,
             {
                 /// Creates a new tx-only serial instance
-                pub fn $usarttx(usart: $USART, txpin: TXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
+                pub fn $usictx(usic: $USIC, txpin: TXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
                     let rxpin = ();
                     let mut serial = Serial {
-                        usart,
+                        usic,
                         pins: (txpin, rxpin),
                     };
                     serial.configure(baud_rate, scu);
@@ -155,28 +155,28 @@ macro_rules! usart {
                 }
             }
 
-            impl<RXPIN> Serial<$USART, (), RXPIN>
+            impl<RXPIN> Serial<$USIC, (), RXPIN>
             where
-                RXPIN: Dx0Pin<$USART>,
+                RXPIN: Dx0Pin<$USIC>,
             {
                 /// Creates a new tx-only serial instance
-                pub fn $usartrx(usart: $USART, rxpin: RXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
+                pub fn $usicrx(usic: $USIC, rxpin: RXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
                     let txpin = ();
                     let pin_num = RXPIN::number();
                     // Set rx pin
                     let mut serial = Serial {
-                        usart,
+                        usic,
                         pins: (txpin, rxpin),
                     };
                     serial.configure(baud_rate, scu);
                     // Set rx pin
-                    serial.usart.dx0cr.write(|w| w.dsel().bits(pin_num));
+                    serial.usic.dx0cr.write(|w| w.dsel().bits(pin_num));
                     // TODO Enable receiving
                     serial
                 }
             }
 
-            impl<TXPIN, RXPIN> Serial<$USART, TXPIN, RXPIN> {
+            impl<TXPIN, RXPIN> Serial<$USIC, TXPIN, RXPIN> {
                 fn configure(&mut self, baud: Bps, scu: &mut Scu) {
                     use core::mem::transmute;
                     use xmc1100::usic0_ch0::{PCR, PCR_ASCMODE};
@@ -184,14 +184,14 @@ macro_rules! usart {
                     scu.scu_clk.cgatclr0.write(|w| w.usic0().set_bit());
                     // XMC 1100 with 115200 8 n
                     // Enable module
-                    self.usart
+                    self.usic
                         .kscfg
                         .write(|w| w.moden().set_bit().bpmoden().set_bit());
                     // Force a read, recommended by the datasheet
-                    self.usart.kscfg.read();
+                    self.usic.kscfg.read();
 
                     // Set the timing with oversampling of 16
-                    crate::usic::set_baudrate(&mut self.usart, scu, baud, 16).unwrap();
+                    crate::usic::set_baudrate(&mut self.usic, scu, baud, 16).unwrap();
                     // USIC Shift Control
                     // SCTR.FLE = 8 (Frame Length)
                     // SCTR.WLE = 8 (Word Length)
@@ -199,7 +199,7 @@ macro_rules! usart {
                     // SCTR.PDL = 1 (This bit defines the output level at the shift data output
                     // signal when no data is available for transmission)
                     unsafe {
-                        self.usart
+                        self.usic
                             .sctr
                             .write(|w| w.pdl().set_bit().trm().value2().fle().bits(7).wle().bits(7))
                     };
@@ -208,7 +208,7 @@ macro_rules! usart {
                     //  can be started if TDV = 1
                     // TBUF.TDSSM = 1 (Data Single Shot Mode: allow word-by-word data transmission
                     //  which avoid sending the same data several times
-                    self.usart
+                    self.usic
                         .tcsr
                         .write(|w| w.tdssm().set_bit().tden().bits(1));
                     // Configuration of Protocol Control Register
@@ -217,7 +217,7 @@ macro_rules! usart {
                     // PCR.SP = 5 (Sample Point)
                     // PCR.PL = 0 (Pulse Length is equal to the bit length)
                     unsafe {
-                        (*transmute::<*const PCR, *const PCR_ASCMODE>(&self.usart.pcr))
+                        (*transmute::<*const PCR, *const PCR_ASCMODE>(&self.usic.pcr))
                             .write(|w| w.smd().set_bit().sp().bits(9))
                     };
                     // Configure Transmit Buffer
@@ -225,122 +225,122 @@ macro_rules! usart {
                     // Define start entry of Transmit Data FIFO buffer DPTR = 0
                     // Set Transmit Data Buffer to 32 and set data pointer to position 0
                     // Set usic ASC mode
-                    unsafe { self.usart.tbctr.write(|w| w.size().value6().dptr().bits(0)) };
+                    unsafe { self.usic.tbctr.write(|w| w.size().value6().dptr().bits(0)) };
                     // Configure Receive Buffer
                     // Standard Receive buffer event is enabled
                     // Define start entry of Receive Data FIFO buffer DPTR = 32
                     // Set Receive Data Buffer Size to 32 and set data pointer to position 32
-                    unsafe { self.usart
+                    unsafe { self.usic
                         .rbctr
                         .write(|w| w.size().value6().dptr().bits(32)) };
                     // Configuration of Channel Control Register
                     // CCR.PM = 00 ( Disable parity generation)
                     // CCR.MODE = 2 (ASC mode enabled. Note: 0 (USIC channel is disabled))
-                    self.usart.ccr.write(|w| w.mode().value3().pm().value1());
+                    self.usic.ccr.write(|w| w.mode().value3().pm().value1());
                 }
             }
         )+
     }
 }
 
-usart! {
+serial! {
     USIC0_CH0: (usic0_ch0, usic0_ch0tx, usic0_ch1rx),
     USIC0_CH1: (usic0_ch1, usic0_ch1tx, usic0_ch0rx),
 }
 
-impl<USART> embedded_hal::serial::Read<u8> for Rx<USART>
+impl<USIC> embedded_hal::serial::Read<u8> for Rx<USIC>
 where
-    USART: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = SerialRegisterBlock>,
 {
     type Error = Error;
 
     /// Tries to read a byte from the uart
     fn read(&mut self) -> nb::Result<u8, Error> {
-        read(self.usart)
+        read(self.usic)
     }
 }
 
-impl<USART, TXPIN, RXPIN> embedded_hal::serial::Read<u8> for Serial<USART, TXPIN, RXPIN>
+impl<USIC, TXPIN, RXPIN> embedded_hal::serial::Read<u8> for Serial<USIC, TXPIN, RXPIN>
 where
-    USART: Deref<Target = SerialRegisterBlock>,
-    RXPIN: Dx0Pin<USART>,
+    USIC: Deref<Target = SerialRegisterBlock>,
+    RXPIN: Dx0Pin<USIC>,
 {
     type Error = Error;
 
     /// Tries to read a byte from the uart
     fn read(&mut self) -> nb::Result<u8, Error> {
-        read(&*self.usart)
+        read(&*self.usic)
     }
 }
 
-impl<USART> embedded_hal::serial::Write<u8> for Tx<USART>
+impl<USIC> embedded_hal::serial::Write<u8> for Tx<USIC>
 where
-    USART: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = SerialRegisterBlock>,
 {
     type Error = void::Void;
 
     /// Ensures that none of the previously written words are still buffered
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
-        flush(self.usart)
+        flush(self.usic)
     }
 
     /// Tries to write a byte to the uart
     /// Fails if the transmit buffer is full
     fn write(&mut self, byte: u8) -> nb::Result<(), Self::Error> {
-        write(self.usart, byte)
+        write(self.usic, byte)
     }
 }
 
-impl<USART, TXPIN, RXPIN> embedded_hal::serial::Write<u8> for Serial<USART, TXPIN, RXPIN>
+impl<USIC, TXPIN, RXPIN> embedded_hal::serial::Write<u8> for Serial<USIC, TXPIN, RXPIN>
 where
-    USART: Deref<Target = SerialRegisterBlock>,
-    TXPIN: Dout0Pin<USART>,
+    USIC: Deref<Target = SerialRegisterBlock>,
+    TXPIN: Dout0Pin<USIC>,
 {
     type Error = void::Void;
 
     /// Ensures that none of the previously written words are still buffered
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
-        flush(&*self.usart)
+        flush(&*self.usic)
     }
 
     /// Tries to write a byte to the uart
     /// Fails if the transmit buffer is full
     fn write(&mut self, byte: u8) -> nb::Result<(), Self::Error> {
-        write(&*self.usart, byte)
+        write(&*self.usic, byte)
     }
 }
 
-impl<USART, TXPIN, RXPIN> Serial<USART, TXPIN, RXPIN>
+impl<USIC, TXPIN, RXPIN> Serial<USIC, TXPIN, RXPIN>
 where
-    USART: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = SerialRegisterBlock>,
 {
     /// Splits the UART Peripheral in a Tx and an Rx part
     /// This is required for sending/receiving
-    pub fn split(self) -> (Tx<USART>, Rx<USART>)
+    pub fn split(self) -> (Tx<USIC>, Rx<USIC>)
     where
-        TXPIN: Dout0Pin<USART>,
-        USART: Deref<Target = SerialRegisterBlock>,
+        TXPIN: Dout0Pin<USIC>,
+        USIC: Deref<Target = SerialRegisterBlock>,
     {
         (
             Tx {
-                usart: &*self.usart,
+                usic: &*self.usic,
                 _instance: PhantomData,
             },
             Rx {
-                usart: &*self.usart,
+                usic: &*self.usic,
                 _instance: PhantomData,
             },
         )
     }
 
-    pub fn release(self) -> (USART, (TXPIN, RXPIN)) {
-        (self.usart, self.pins)
+    pub fn release(self) -> (USIC, (TXPIN, RXPIN)) {
+        (self.usic, self.pins)
     }
 }
 
-impl<USART> Write for Tx<USART>
+impl<USIC> Write for Tx<USIC>
 where
-    Tx<USART>: embedded_hal::serial::Write<u8>,
+    Tx<USIC>: embedded_hal::serial::Write<u8>,
 {
     fn write_str(&mut self, s: &str) -> Result {
         s.as_bytes()
@@ -350,10 +350,10 @@ where
     }
 }
 
-impl<USART, TXPIN, RXPIN> Write for Serial<USART, TXPIN, RXPIN>
+impl<USIC, TXPIN, RXPIN> Write for Serial<USIC, TXPIN, RXPIN>
 where
-    USART: Deref<Target = SerialRegisterBlock>,
-    TXPIN: Dout0Pin<USART>,
+    USIC: Deref<Target = SerialRegisterBlock>,
+    TXPIN: Dout0Pin<USIC>,
 {
     fn write_str(&mut self, s: &str) -> Result {
         s.as_bytes()
@@ -364,9 +364,9 @@ where
 }
 
 /// Ensures that none of the previously written words are still buffered
-fn flush(usart: *const SerialRegisterBlock) -> nb::Result<(), void::Void> {
+fn flush(usic: *const SerialRegisterBlock) -> nb::Result<(), void::Void> {
     // NOTE(unsafe) atomic read with no side effects
-    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usart).psr)).read() };
+    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usic).psr)).read() };
     if psr.txidle().bit_is_set() {
         Ok(())
     } else {
@@ -376,13 +376,13 @@ fn flush(usart: *const SerialRegisterBlock) -> nb::Result<(), void::Void> {
 
 /// Tries to write a byte to the UART
 /// Fails if the transmit buffer is full
-fn write(usart: *const SerialRegisterBlock, byte: u8) -> nb::Result<(), void::Void> {
+fn write(usic: *const SerialRegisterBlock, byte: u8) -> nb::Result<(), void::Void> {
     // NOTE(unsafe) atomic read with no side effects
-    let trbsr = unsafe { (*usart).trbsr.read() };
+    let trbsr = unsafe { (*usic).trbsr.read() };
 
     if trbsr.tfull().bit_is_clear() {
         // Write into first fifo buffer
-        unsafe { (*usart).in_[0].write(|w| w.tdata().bits(byte as u16)) };
+        unsafe { (*usic).in_[0].write(|w| w.tdata().bits(byte as u16)) };
         Ok(())
     } else {
         Err(nb::Error::WouldBlock)
@@ -390,11 +390,11 @@ fn write(usart: *const SerialRegisterBlock, byte: u8) -> nb::Result<(), void::Vo
 }
 
 /// Tries to read a byte from the UART
-fn read(usart: *const SerialRegisterBlock) -> nb::Result<u8, Error> {
+fn read(usic: *const SerialRegisterBlock) -> nb::Result<u8, Error> {
     // NOTE(unsafe) atomic read with no side effects
-    let trbsr = unsafe { (*usart).trbsr.read() };
+    let trbsr = unsafe { (*usic).trbsr.read() };
     // NOTE(unsafe) atomic read with no side effects
-    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usart).psr)).read() };
+    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usic).psr)).read() };
     Err(
         // TODO Detect Parity error
         if psr.fer0().bit_is_set() || psr.fer1().bit_is_set() {
@@ -405,7 +405,7 @@ fn read(usart: *const SerialRegisterBlock) -> nb::Result<u8, Error> {
             nb::Error::Other(Error::Overrun)
         } else if trbsr.rempty().bit_is_clear() {
             // NOTE(read_volatile) see `write_volatile` below
-            return Ok(unsafe { ptr::read_volatile(&(*usart).outr as *const _ as *const _) });
+            return Ok(unsafe { ptr::read_volatile(&(*usic).outr as *const _ as *const _) });
         } else {
             nb::Error::WouldBlock
         },
