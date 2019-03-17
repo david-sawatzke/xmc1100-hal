@@ -1,10 +1,53 @@
 use crate::{scu::Scu, time::Bps};
+use core::marker::PhantomData;
 use core::ops::Deref;
 use xmc1100;
 
 pub trait Dout0Pin<USIC> {}
+
+pub trait Dx0Pin<USIC> {
+    fn number() -> u8;
+}
+pub trait Dx1Pin<USIC> {
+    fn number() -> u8;
+}
+pub trait Dx2Pin<USIC> {
+    fn number() -> u8;
+}
+pub trait Dx3Pin<USIC> {
+    fn number() -> u8;
+}
+pub trait Dx4Pin<USIC> {
+    fn number() -> u8;
+}
+pub trait Dx5Pin<USIC> {
+    fn number() -> u8;
+}
+
+pub struct Dx0Dx3Pin<PIN, USIC> {
+    pin: PIN,
+    phantom: PhantomData<USIC>,
+}
+
+impl<USIC, PIN> Dx0Pin<USIC> for Dx0Dx3Pin<PIN, USIC> {
+    fn number() -> u8 {
+        6
+    }
+}
 // Common register
 type UsicRegisterBlock = xmc1100::usic0_ch0::RegisterBlock;
+
+pub fn dx3pin_to_dx0pin<USIC, PIN>(pin: PIN, usic: &mut USIC) -> Dx0Dx3Pin<PIN, USIC>
+where
+    USIC: Deref<Target = UsicRegisterBlock>,
+    PIN: Dx3Pin<USIC>,
+{
+    usic.dx3cr.write(|w| w.dsel().bits(PIN::number()));
+    Dx0Dx3Pin {
+        pin: pin,
+        phantom: PhantomData,
+    }
+}
 
 pub(crate) fn set_baudrate<USIC>(
     usic: &mut USIC,

@@ -35,7 +35,7 @@ fn main() -> ! {
             // Get delay provider
             let mut delay = Delay::new(cp.SYST, &scu);
             // Create usart
-            let mut serial = Serial::usic0_ch0(p.USIC0_CH0, (tx, ()), Bps(9600), &mut scu);
+            let mut serial = Serial::usic0_ch0tx(p.USIC0_CH0, tx, Bps(9600), &mut scu);
             loop {
                 led.set_high();
                 serial.write_str("Off\r\n");

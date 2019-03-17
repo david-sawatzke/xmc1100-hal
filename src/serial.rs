@@ -67,6 +67,7 @@ use core::{
 
 use embedded_hal::prelude::*;
 
+use crate::usic::Dout0Pin;
 use crate::{gpio::*, scu::Scu, time::Bps, usic::*};
 
 use core::marker::PhantomData;
@@ -88,8 +89,6 @@ pub enum Error {
     #[doc(hidden)]
     _Extensible,
 }
-
-pub trait RxPin<USART> {}
 
 /// Serial abstraction
 pub struct Serial<USART, TXPIN, RXPIN> {
@@ -119,18 +118,21 @@ pub struct Tx<USART> {
 unsafe impl<USART> Send for Tx<USART> {}
 
 macro_rules! usart {
-    ($($USART:ident: ($usart:ident, $usarttx:ident, $usartrx:ident, $usartXen:ident, $apbenr:ident),)+) => {
+    ($($USART:ident: ($usart:ident, $usarttx:ident, $usartrx:ident),)+) => {
         $(
             use crate::xmc1100::$USART;
             impl<TXPIN, RXPIN> Serial<$USART, TXPIN, RXPIN>
             where
                 TXPIN: Dout0Pin<$USART>,
-            //     RXPIN: RxPin<$USART>,
+                RXPIN: Dx0Pin<$USART>,
             {
                 /// Creates a new serial instance
                 pub fn $usart(usart: $USART, pins: (TXPIN, RXPIN), baud_rate: Bps, scu: &mut Scu) -> Self {
+                    let pin_num = RXPIN::number();
                     let mut serial = Serial { usart, pins };
                     serial.configure(baud_rate, scu);
+                    // Set rx pin
+                    serial.usart.dx0cr.write(|w| w.dsel().bits(pin_num));
                     // TODO Enable transmission and receiving
                     serial
                 }
@@ -155,16 +157,20 @@ macro_rules! usart {
 
             impl<RXPIN> Serial<$USART, (), RXPIN>
             where
-                RXPIN: RxPin<$USART>,
+                RXPIN: Dx0Pin<$USART>,
             {
                 /// Creates a new tx-only serial instance
                 pub fn $usartrx(usart: $USART, rxpin: RXPIN, baud_rate: Bps, scu: &mut Scu) -> Self {
                     let txpin = ();
+                    let pin_num = RXPIN::number();
+                    // Set rx pin
                     let mut serial = Serial {
                         usart,
                         pins: (txpin, rxpin),
                     };
                     serial.configure(baud_rate, scu);
+                    // Set rx pin
+                    serial.usart.dx0cr.write(|w| w.dsel().bits(pin_num));
                     // TODO Enable receiving
                     serial
                 }
@@ -183,6 +189,7 @@ macro_rules! usart {
                         .write(|w| w.moden().set_bit().bpmoden().set_bit());
                     // Force a read, recommended by the datasheet
                     self.usart.kscfg.read();
+
                     // Set the timing with oversampling of 16
                     crate::usic::set_baudrate(&mut self.usart, scu, baud, 16).unwrap();
                     // USIC Shift Control
@@ -219,11 +226,6 @@ macro_rules! usart {
                     // Set Transmit Data Buffer to 32 and set data pointer to position 0
                     // Set usic ASC mode
                     unsafe { self.usart.tbctr.write(|w| w.size().value6().dptr().bits(0)) };
-                    // TODO P2.2 as input (UART_RX DX0)
-                    // Select P2.2 as input for USIC DX3 -> UCIC DX0
-                    self.usart.dx3cr.write(|w| w.dsel().value1());
-                    // Route USIC DX3 input signal to USIC DX0 (DSEL=DX0G)
-                    self.usart.dx0cr.write(|w| w.dsel().value7());
                     // Configure Receive Buffer
                     // Standard Receive buffer event is enabled
                     // Define start entry of Receive Data FIFO buffer DPTR = 32
@@ -242,8 +244,8 @@ macro_rules! usart {
 }
 
 usart! {
-    USIC0_CH0: (usic0_ch0, usart2tx, usart2rx,usart2en, apb1enr),
-    USIC0_CH1: (usic0_ch1, usart1tx, usart1rx, usart1en, apb2enr),
+    USIC0_CH0: (usic0_ch0, usic0_ch0tx, usic0_ch1rx),
+    USIC0_CH1: (usic0_ch1, usic0_ch1tx, usic0_ch0rx),
 }
 
 impl<USART> embedded_hal::serial::Read<u8> for Rx<USART>
@@ -261,7 +263,7 @@ where
 impl<USART, TXPIN, RXPIN> embedded_hal::serial::Read<u8> for Serial<USART, TXPIN, RXPIN>
 where
     USART: Deref<Target = SerialRegisterBlock>,
-    // RXPIN: RxPin<USART>,
+    RXPIN: Dx0Pin<USART>,
 {
     type Error = Error;
 
@@ -317,7 +319,7 @@ where
     pub fn split(self) -> (Tx<USART>, Rx<USART>)
     where
         TXPIN: Dout0Pin<USART>,
-        RXPIN: RxPin<USART>,
+        USART: Deref<Target = SerialRegisterBlock>,
     {
         (
             Tx {
