@@ -10,4 +10,5 @@ pub mod prelude;
 pub mod scu;
 pub mod serial;
 pub mod time;
+pub mod timers;
 pub mod usic;
