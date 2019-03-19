@@ -35,7 +35,7 @@ impl<USIC, PIN> Dx0Pin<USIC> for Dx0Dx3Pin<PIN, USIC> {
     }
 }
 // Common register
-type UsicRegisterBlock = xmc1100::usic0_ch0::RegisterBlock;
+pub(crate) type UsicRegisterBlock = xmc1100::usic0_ch0::RegisterBlock;
 
 pub fn dx3pin_to_dx0pin<USIC, PIN>(pin: PIN, usic: &mut USIC) -> Dx0Dx3Pin<PIN, USIC>
 where

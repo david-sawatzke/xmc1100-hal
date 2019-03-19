@@ -96,12 +96,9 @@ pub struct Serial<USIC, TXPIN, RXPIN> {
     pins: (TXPIN, RXPIN),
 }
 
-// Common register
-type SerialRegisterBlock = crate::xmc1100::usic0_ch0::RegisterBlock;
-
 /// Serial receiver
 pub struct Rx<USIC> {
-    usic: *const SerialRegisterBlock,
+    usic: *const UsicRegisterBlock,
     _instance: PhantomData<USIC>,
 }
 
@@ -110,7 +107,7 @@ unsafe impl<USIC> Send for Rx<USIC> {}
 
 /// Serial transmitter
 pub struct Tx<USIC> {
-    usic: *const SerialRegisterBlock,
+    usic: *const UsicRegisterBlock,
     _instance: PhantomData<USIC>,
 }
 
@@ -250,7 +247,7 @@ serial! {
 
 impl<USIC> embedded_hal::serial::Read<u8> for Rx<USIC>
 where
-    USIC: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = UsicRegisterBlock>,
 {
     type Error = Error;
 
@@ -262,7 +259,7 @@ where
 
 impl<USIC, TXPIN, RXPIN> embedded_hal::serial::Read<u8> for Serial<USIC, TXPIN, RXPIN>
 where
-    USIC: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = UsicRegisterBlock>,
     RXPIN: Dx0Pin<USIC>,
 {
     type Error = Error;
@@ -275,7 +272,7 @@ where
 
 impl<USIC> embedded_hal::serial::Write<u8> for Tx<USIC>
 where
-    USIC: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = UsicRegisterBlock>,
 {
     type Error = void::Void;
 
@@ -293,7 +290,7 @@ where
 
 impl<USIC, TXPIN, RXPIN> embedded_hal::serial::Write<u8> for Serial<USIC, TXPIN, RXPIN>
 where
-    USIC: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = UsicRegisterBlock>,
     TXPIN: Dout0Pin<USIC>,
 {
     type Error = void::Void;
@@ -312,14 +309,14 @@ where
 
 impl<USIC, TXPIN, RXPIN> Serial<USIC, TXPIN, RXPIN>
 where
-    USIC: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = UsicRegisterBlock>,
 {
     /// Splits the UART Peripheral in a Tx and an Rx part
     /// This is required for sending/receiving
     pub fn split(self) -> (Tx<USIC>, Rx<USIC>)
     where
         TXPIN: Dout0Pin<USIC>,
-        USIC: Deref<Target = SerialRegisterBlock>,
+        USIC: Deref<Target = UsicRegisterBlock>,
     {
         (
             Tx {
@@ -352,7 +349,7 @@ where
 
 impl<USIC, TXPIN, RXPIN> Write for Serial<USIC, TXPIN, RXPIN>
 where
-    USIC: Deref<Target = SerialRegisterBlock>,
+    USIC: Deref<Target = UsicRegisterBlock>,
     TXPIN: Dout0Pin<USIC>,
 {
     fn write_str(&mut self, s: &str) -> Result {
@@ -364,7 +361,7 @@ where
 }
 
 /// Ensures that none of the previously written words are still buffered
-fn flush(usic: *const SerialRegisterBlock) -> nb::Result<(), void::Void> {
+fn flush(usic: *const UsicRegisterBlock) -> nb::Result<(), void::Void> {
     // NOTE(unsafe) atomic read with no side effects
     let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usic).psr)).read() };
     if psr.txidle().bit_is_set() {
@@ -376,7 +373,7 @@ fn flush(usic: *const SerialRegisterBlock) -> nb::Result<(), void::Void> {
 
 /// Tries to write a byte to the UART
 /// Fails if the transmit buffer is full
-fn write(usic: *const SerialRegisterBlock, byte: u8) -> nb::Result<(), void::Void> {
+fn write(usic: *const UsicRegisterBlock, byte: u8) -> nb::Result<(), void::Void> {
     // NOTE(unsafe) atomic read with no side effects
     let trbsr = unsafe { (*usic).trbsr.read() };
 
@@ -390,7 +387,7 @@ fn write(usic: *const SerialRegisterBlock, byte: u8) -> nb::Result<(), void::Voi
 }
 
 /// Tries to read a byte from the UART
-fn read(usic: *const SerialRegisterBlock) -> nb::Result<u8, Error> {
+fn read(usic: *const UsicRegisterBlock) -> nb::Result<u8, Error> {
     // NOTE(unsafe) atomic read with no side effects
     let trbsr = unsafe { (*usic).trbsr.read() };
     // NOTE(unsafe) atomic read with no side effects
