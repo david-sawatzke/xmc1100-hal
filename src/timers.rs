@@ -95,9 +95,48 @@ impl Periodic for SystickTimer {}
 
 pub(crate) type CcuRegisterBlock = ccu40_cc40::RegisterBlock;
 
+pub trait CcuSliceGlobal {
+    fn reset(&self);
+    fn transfer_shadow(&self);
+}
+
+macro_rules! timer_trait {
+    ($($TIMER:ident: ($ssxi:ident, $csxi:ident, $sxse:ident)),+) => {
+        $(
+            impl CcuSliceGlobal for xmc1100::$TIMER {
+                fn reset(&self) {
+                    // Disable timer idle status
+                    // NOTE(unsafe) This is a write only regist)er
+                    unsafe { (*CCU40::ptr()).gidls.write(|w| w.$ssxi().set_bit()) };
+                    // Enable the timers
+                    // NOTE(unsafe) This is a write only register
+                    unsafe { (*CCU40::ptr()).gidlc.write(|w| w.$csxi().set_bit()) };
+                }
+                fn transfer_shadow(&self) {
+                    // Enable the timers
+                    // NOTE(unsafe) This is a write only register
+                    unsafe {
+                        (*CCU40::ptr()).gcss.write(|w| {
+                            w.$sxse()
+                                .set_bit()
+                        })
+                    };
+                }
+            }
+        )+
+    };
+}
+
+timer_trait!(
+    CCU40_CC40: (ss0i, cs0i, s0se),
+    CCU40_CC41: (ss1i, cs1i, s1se),
+    CCU40_CC42: (ss2i, cs2i, s2se),
+    CCU40_CC43: (ss3i, cs3i, s3se)
+);
+
 impl<TIMER> Timer<TIMER>
 where
-    TIMER: Deref<Target = CcuRegisterBlock>,
+    TIMER: Deref<Target = CcuRegisterBlock> + CcuSliceGlobal,
 {
     pub fn timer<T>(timer: TIMER, timeout: T, scu: &Scu) -> Self
     where
@@ -105,35 +144,7 @@ where
     {
         // Disable clock gating
         scu.scu_clk.cgatclr0.write(|w| w.ccu40().set_bit());
-        // TODO FIx this
-        // Disable timer idle status
-        // NOTE(unsafe) This is a write only register
-        unsafe {
-            (*CCU40::ptr()).gidls.write(|w| {
-                w.ss0i()
-                    .set_bit()
-                    .ss1i()
-                    .set_bit()
-                    .ss2i()
-                    .set_bit()
-                    .ss3i()
-                    .set_bit()
-            })
-        };
-        // Enable the timers
-        // NOTE(unsafe) This is a write only register
-        unsafe {
-            (*CCU40::ptr()).gidlc.write(|w| {
-                w.cs0i()
-                    .set_bit()
-                    .cs1i()
-                    .set_bit()
-                    .cs2i()
-                    .set_bit()
-                    .cs3i()
-                    .set_bit()
-            })
-        };
+        timer.reset();
         // Shadow Transfer on clear
         timer.tc.write(|w| w.clst().set_bit());
         let mut timer = Timer {
@@ -143,15 +154,14 @@ where
         timer.start(timeout);
         // Start the timer
         timer.tim.tcset.write(|w| w.trbs().set_bit());
-        // unsafe { (*CCU40::ptr()).gidls.write(|w| w.psic().set_bit()) };
-        // unsafe { (*CCU40::ptr()).gidlc.write(|w| w.sprb().set_bit()) };
+        unsafe { (*CCU40::ptr()).gidlc.write(|w| w.sprb().set_bit()) };
         timer
     }
 }
 
 impl<TIMER> CountDown for Timer<TIMER>
 where
-    TIMER: Deref<Target = CcuRegisterBlock>,
+    TIMER: Deref<Target = CcuRegisterBlock> + CcuSliceGlobal,
 {
     type Time = Hertz;
 
@@ -160,7 +170,6 @@ where
     where
         T: Into<Hertz>,
     {
-        // GENERAL STRATEGY
         // Edge counting mode
         // Counts up until it hits PR, then reset to 0
         // So we need to adjust PR & (prescaling)
@@ -198,18 +207,7 @@ where
         self.tim.tcclr.write(|w| w.tcc().set_bit());
         // Reset period match
         self.tim.swr.write(|w| w.rpm().set_bit());
-        unsafe {
-            (*CCU40::ptr()).gcss.write(|w| {
-                w.s0se()
-                    .set_bit()
-                    .s1se()
-                    .set_bit()
-                    .s2se()
-                    .set_bit()
-                    .s3se()
-                    .set_bit()
-            })
-        };
+        self.tim.transfer_shadow();
     }
 
     /// Return `Ok` if the timer has wrapped
