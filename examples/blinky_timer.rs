@@ -2,7 +2,7 @@
 #![no_std]
 
 #[allow(unused)]
-use panic_semihosting;
+use panic_halt;
 
 use xmc1100_hal as hal;
 
@@ -34,14 +34,11 @@ fn main() -> ! {
                 nb::block!(timer.wait());
                 led.set_low();
                 nb::block!(timer.wait());
-                timer.start(Hertz(20));
-                led.set_high();
-                nb::block!(timer.wait());
-                led.set_low();
-                nb::block!(timer.wait());
-                timer.start(Hertz(500));
-                for _ in 0..250 {
+                // Do "pwm"
+                timer.start(Hertz(600));
+                for _ in 0..200 {
                     led.set_high();
+                    nb::block!(timer.wait());
                     nb::block!(timer.wait());
                     led.set_low();
                     nb::block!(timer.wait());
