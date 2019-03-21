@@ -28,8 +28,8 @@ fn main() -> ! {
 
             // (Re-)configure PA1 as output
             let mut led = port1.p1_1.into_push_pull_output(&cs);
-            let rx = port2.p2_2.into_floating_input(&cs);
-            let tx = port2.p2_0.into_alternate_af6(&cs);
+            // Used so output can be sniffed
+            let _tx = port2.p2_0.into_alternate_af6(&cs);
             let tx = port2.p2_1.into_alternate_af6(&cs);
 
             // Get delay provider
@@ -38,10 +38,10 @@ fn main() -> ! {
             let mut serial = Serial::usic0_ch0tx(p.USIC0_CH0, tx, Bps(9600), &mut scu);
             loop {
                 led.set_high();
-                serial.write_str("Off\r\n");
+                serial.write_str("Off\r\n").ok();
                 delay.delay_ms(1_000_u16);
                 led.set_low();
-                serial.write_str("On\r\n");
+                serial.write_str("On\r\n").ok();
                 delay.delay_ms(1_000_u16);
             }
         });

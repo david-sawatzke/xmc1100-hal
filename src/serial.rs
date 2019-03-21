@@ -68,7 +68,7 @@ use core::{
 use embedded_hal::prelude::*;
 
 use crate::usic::Dout0Pin;
-use crate::{gpio::*, scu::Scu, time::Bps, usic::*};
+use crate::{scu::Scu, time::Bps, usic::*};
 
 use core::marker::PhantomData;
 

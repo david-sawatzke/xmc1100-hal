@@ -93,6 +93,8 @@ impl CountDown for SystickTimer {
 
 impl Periodic for SystickTimer {}
 
+// It's s needed for the impls, but rustc doesn't recognize that
+#[allow(dead_code)]
 pub(crate) type CcuRegisterBlock = ccu40_cc40::RegisterBlock;
 
 pub trait CcuSliceGlobal {

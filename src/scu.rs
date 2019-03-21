@@ -9,7 +9,7 @@ use crate::time::{Hertz, MegaHertz};
 /// Constrained SCU peripheral
 pub struct Scu {
     pub clocks: Clocks,
-    pub(crate) scu_general: SCU_GENERAL,
+    pub(crate) _scu_general: SCU_GENERAL,
     pub(crate) scu_clk: SCU_CLK,
 }
 
@@ -23,7 +23,7 @@ impl Scu {
             clocks: Clocks {
                 sysclk: MegaHertz(8).into(),
             },
-            scu_general,
+            _scu_general: scu_general,
             scu_clk,
         }
     }

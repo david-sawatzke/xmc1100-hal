@@ -6,16 +6,13 @@ use panic_semihosting;
 
 use xmc1100_hal as hal;
 
-use crate::hal::delay::Delay;
 use crate::hal::prelude::*;
 use crate::hal::scu::Scu;
 use crate::hal::serial::Serial;
 use crate::hal::time::Bps;
 use crate::hal::usic;
 use crate::hal::xmc1100;
-use core::fmt::Write;
 
-use cortex_m::peripheral::Peripherals;
 use cortex_m_rt::entry;
 
 #[entry]
@@ -28,7 +25,8 @@ fn main() -> ! {
             let mut scu = Scu::new(p.SCU_GENERAL, p.SCU_CLK);
 
             let rx = port2.p2_2.into_floating_input(&cs);
-            let tx = port2.p2_0.into_alternate_af6(&cs);
+            // Used so output can be sniffed
+            let _tx = port2.p2_0.into_alternate_af6(&cs);
             let tx = port2.p2_1.into_alternate_af6(&cs);
             let rx = usic::dx3pin_to_dx0pin(rx, &mut usic);
             // Create usart

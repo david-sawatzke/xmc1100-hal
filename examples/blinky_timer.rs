@@ -6,7 +6,6 @@ use panic_halt;
 
 use xmc1100_hal as hal;
 
-use crate::hal::delay::Delay;
 use crate::hal::prelude::*;
 use crate::hal::scu::Scu;
 use crate::hal::time::Hertz;
@@ -18,7 +17,7 @@ use cortex_m_rt::entry;
 
 #[entry]
 fn main() -> ! {
-    if let (Some(p), Some(cp)) = (xmc1100::Peripherals::take(), Peripherals::take()) {
+    if let (Some(p), Some(_cp)) = (xmc1100::Peripherals::take(), Peripherals::take()) {
         cortex_m::interrupt::free(move |cs| {
             let port1 = p.PORT1.split();
 
@@ -31,17 +30,17 @@ fn main() -> ! {
             loop {
                 timer.start(Hertz(1));
                 led.set_high();
-                nb::block!(timer.wait());
+                nb::block!(timer.wait()).unwrap();
                 led.set_low();
-                nb::block!(timer.wait());
+                nb::block!(timer.wait()).unwrap();
                 // Do "pwm"
                 timer.start(Hertz(600));
                 for _ in 0..200 {
                     led.set_high();
-                    nb::block!(timer.wait());
-                    nb::block!(timer.wait());
+                    nb::block!(timer.wait()).unwrap();
+                    nb::block!(timer.wait()).unwrap();
                     led.set_low();
-                    nb::block!(timer.wait());
+                    nb::block!(timer.wait()).unwrap();
                 }
             }
         });

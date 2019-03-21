@@ -25,7 +25,7 @@ pub trait Dx5Pin<USIC> {
 }
 
 pub struct Dx0Dx3Pin<PIN, USIC> {
-    pin: PIN,
+    _pin: PIN,
     phantom: PhantomData<USIC>,
 }
 
@@ -44,7 +44,7 @@ where
 {
     usic.dx3cr.write(|w| w.dsel().bits(PIN::number()));
     Dx0Dx3Pin {
-        pin: pin,
+        _pin: pin,
         phantom: PhantomData,
     }
 }
