@@ -14,18 +14,51 @@ pub struct Scu {
 }
 
 impl Scu {
-    pub fn new(scu_general: SCU_GENERAL, scu_clk: SCU_CLK) -> Self {
+    pub fn new(scu_general: SCU_GENERAL, scu_clk: SCU_CLK) -> ClockConfig {
         // Disable write protection
         scu_general
             .passwd
             .write(|w| w.pass().value1().mode().value1());
-        Scu {
+        let scu = Scu {
             clocks: Clocks {
                 sysclk: MegaHertz(8).into(),
             },
             _scu_general: scu_general,
             scu_clk,
+        };
+        ClockConfig { scu, sysclk: None }
+    }
+}
+
+pub struct ClockConfig {
+    scu: Scu,
+    sysclk: Option<u32>,
+}
+
+impl ClockConfig {
+    pub fn sysclk<F>(mut self, freq: F) -> Self
+    where
+        F: Into<Hertz>,
+    {
+        self.sysclk = Some(freq.into().0);
+        self
+    }
+
+    pub fn freeze(mut self) -> Scu {
+        // TODO Do temperature calibration
+        if let Some(sysclk) = self.sysclk {
+            let idiv = 32000000 / sysclk;
+            if idiv > 0xFF || idiv == 0 {
+                panic!("Divider for sysclk invalid");
+            }
+            unsafe { self.scu.scu_clk.clkcr.write(|w| w.idiv().bits(idiv as u8)) };
+            // Calculate real frequency
+            self.scu.clocks.sysclk = Hertz(32000000 / idiv);
+        } else {
+            // Set default frequency of 8MHz
+            unsafe { self.scu.scu_clk.clkcr.write(|w| w.idiv().bits(0x04)) };
         }
+        self.scu
     }
 }
 /// Frozen clock frequencies

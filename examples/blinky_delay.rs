@@ -20,7 +20,7 @@ fn main() -> ! {
         cortex_m::interrupt::free(move |cs| {
             let port1 = p.PORT1.split();
 
-            let scu = Scu::new(p.SCU_GENERAL, p.SCU_CLK);
+            let scu = Scu::new(p.SCU_GENERAL, p.SCU_CLK).freeze();
             /* (Re-)configure PA1 as output */
             let mut led = port1.p1_1.into_push_pull_output(&cs);
 

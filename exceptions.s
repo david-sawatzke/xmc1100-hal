@@ -7,8 +7,7 @@
     .long HardFault
     /* Clock config */
     /* Leave clock config alone, results in 8 MHz */
-    /* TODO */
-    .long 0x00000400
+    .long 0x80000000
     /* Leave clock gating alone */
     .long 0x80000000
 /* ==================VENEERS VENEERS VENEERS VENEERS VENEERS=============== */

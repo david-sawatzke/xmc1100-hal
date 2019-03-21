@@ -22,7 +22,7 @@ fn main() -> ! {
             let port2 = p.PORT2.split();
             let mut usic = p.USIC0_CH0;
 
-            let mut scu = Scu::new(p.SCU_GENERAL, p.SCU_CLK);
+            let mut scu = Scu::new(p.SCU_GENERAL, p.SCU_CLK).freeze();
 
             let rx = port2.p2_2.into_floating_input(&cs);
             // Used so output can be sniffed
