@@ -205,11 +205,11 @@ where
                 _ => panic!("Timer prescaler value too large"),
             })
         };
+        self.tim.transfer_shadow();
         // Reset the timer count
         self.tim.tcclr.write(|w| w.tcc().set_bit());
         // Reset period match
         self.tim.swr.write(|w| w.rpm().set_bit());
-        self.tim.transfer_shadow();
     }
 
     /// Return `Ok` if the timer has wrapped
