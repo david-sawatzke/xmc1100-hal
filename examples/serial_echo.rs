@@ -2,7 +2,7 @@
 #![no_std]
 
 #[allow(unused)]
-use panic_semihosting;
+use panic_halt;
 
 use xmc1100_hal as hal;
 

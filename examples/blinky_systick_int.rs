@@ -57,23 +57,22 @@ fn main() -> ! {
 
 /* Define an exception, i.e. function to call when exception occurs. Here if our SysTick timer
  * trips the flash function will be called and the specified stated passed in via argument */
-//, flash, state: u8 = 1);
 #[exception]
 fn SysTick() -> ! {
-    static mut state: u8 = 0;
+    static mut STATE: u8 = 0;
 
     /* Enter critical section */
     cortex_m::interrupt::free(|cs| {
         if let Some(ref mut led) = *PORT.borrow(cs).borrow_mut().deref_mut() {
             /* Check state variable, keep LED off most of the time and turn it on every 10th tick */
-            if *state < 0x7F {
+            if *STATE < 0x7F {
                 /* If set turn off the LED */
                 led.set_high();
             } else {
                 /* If not set, turn on the LED */
                 led.set_low();
             }
-            *state += 1;
+            *STATE += 1;
         }
     });
 }

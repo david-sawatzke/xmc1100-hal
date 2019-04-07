@@ -8,7 +8,7 @@ use xmc1100_hal as hal;
 
 use crate::hal::prelude::*;
 use crate::hal::scu::Scu;
-use crate::hal::time::{Hertz, MegaHertz};
+use crate::hal::time::Hertz;
 use crate::hal::timers::*;
 use crate::hal::xmc1100;
 
