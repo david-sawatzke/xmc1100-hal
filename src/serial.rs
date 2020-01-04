@@ -4,59 +4,6 @@
 //!
 //! It's possible to use a read-only/write-only serial implementation with
 //! `usicXrx`/`usicXtx`.
-//!
-//! # Examples
-//! Echo
-//! ``` no_run
-//! use stm32f0xx_hal as hal;
-//!
-//! use crate::hal::prelude::*;
-//! use crate::hal::serial::Serial;
-//! use crate::hal::stm32;
-//!
-//! use nb::block;
-//!
-//! cortex_m::interrupt::free(|cs| {
-//!     let rcc = p.RCC.configure().sysclk(48.mhz()).freeze();
-//!
-//!     let gpioa = p.GPIOA.split(&mut rcc);
-//!
-//!     let tx = gpioa.pa9.into_alternate_af1(cs);
-//!     let rx = gpioa.pa10.into_alternate_af1(cs);
-//!
-//!     let mut serial = Serial::usic1(p.USIC1, (tx, rx), 115_200.bps(), &mut rcc);
-//!
-//!     loop {
-//!         let received = block!(serial.read()).unwrap();
-//!         block!(serial.write(received)).ok();
-//!     }
-//! });
-//! ```
-//!
-//! Hello World
-//! ``` no_run
-//! use stm32f0xx_hal as hal;
-//!
-//! use crate::hal::prelude::*;
-//! use crate::hal::serial::Serial;
-//! use crate::hal::stm32;
-//!
-//! use nb::block;
-//!
-//! cortex_m::interrupt::free(|cs| {
-//!     let rcc = p.RCC.configure().sysclk(48.mhz()).freeze();
-//!
-//!     let gpioa = p.GPIOA.split(&mut rcc);
-//!
-//!     let tx = gpioa.pa9.into_alternate_af1(cs);
-//!
-//!     let mut serial = Serial::usic1tx(p.USIC1, tx, 115_200.bps(), &mut rcc);
-//!
-//!     loop {
-//!         serial.write_str("Hello World!\r\n");
-//!     }
-//! });
-//! ```
 
 use core::{
     fmt::{Result, Write},
