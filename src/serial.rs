@@ -7,7 +7,6 @@
 
 use core::{
     fmt::{Result, Write},
-    mem::transmute,
     ops::Deref,
     ptr,
 };
@@ -18,9 +17,6 @@ use crate::usic::Dout0Pin;
 use crate::{scu::Scu, time::Bps, usic::*};
 
 use core::marker::PhantomData;
-
-use xmc1100;
-use xmc1100::usic0_ch0::{PSR, PSR_ASCMODE};
 
 /// Serial error
 #[derive(Debug)]
@@ -122,8 +118,6 @@ macro_rules! serial {
 
             impl<TXPIN, RXPIN> Serial<$USIC, TXPIN, RXPIN> {
                 fn configure(&mut self, baud: Bps, scu: &mut Scu) {
-                    use core::mem::transmute;
-                    use xmc1100::usic0_ch0::{PCR, PCR_ASCMODE};
                     // Disable clock gating
                     scu.scu_clk.cgatclr0.write(|w| w.usic0().set_bit());
                     // XMC 1100 with 115200 8 n
@@ -160,8 +154,7 @@ macro_rules! serial {
                     // PCR.STPB = 0 (1x Stop bit)
                     // PCR.SP = 5 (Sample Point)
                     // PCR.PL = 0 (Pulse Length is equal to the bit length)
-                    unsafe {
-                        (*transmute::<*const PCR, *const PCR_ASCMODE>(&self.usic.pcr))
+                    unsafe {self.usic.pcr_ascmode_mut()
                             .write(|w| w.smd().set_bit().sp().bits(9))
                     };
                     // Configure Transmit Buffer
@@ -310,7 +303,7 @@ where
 /// Ensures that none of the previously written words are still buffered
 fn flush(usic: *const UsicRegisterBlock) -> nb::Result<(), void::Void> {
     // NOTE(unsafe) atomic read with no side effects
-    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usic).psr)).read() };
+    let psr = unsafe { &(*usic).psr_ascmode().read() };
     if psr.txidle().bit_is_set() {
         Ok(())
     } else {
@@ -338,7 +331,7 @@ fn read(usic: *const UsicRegisterBlock) -> nb::Result<u8, Error> {
     // NOTE(unsafe) atomic read with no side effects
     let trbsr = unsafe { (*usic).trbsr.read() };
     // NOTE(unsafe) atomic read with no side effects
-    let psr = unsafe { (*transmute::<*const PSR, *const PSR_ASCMODE>(&(*usic).psr)).read() };
+    let psr = unsafe { &(*usic).psr_ascmode().read() };
     Err(
         // TODO Detect Parity error
         if psr.fer0().bit_is_set() || psr.fer1().bit_is_set() {
