@@ -25,14 +25,14 @@ fn main() -> ! {
             let mut led1 = port1.p1_0.into_push_pull_output(&cs);
             /* (Re-)configure P1.1 as output */
             let led2 = port1.p1_1.into_push_pull_output(&cs);
-            led1.set_high();
+            led1.set_high().ok();
             let mut leds = [led1.downgrade(), led2.downgrade()];
 
             /* Get delay provider */
             let mut delay = Delay::new(cp.SYST, &scu);
             loop {
                 for led in leds.iter_mut() {
-                    led.toggle();
+                    led.toggle().ok();
                 }
                 delay.delay_ms(1_000_u16);
             }

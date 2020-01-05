@@ -16,14 +16,14 @@ categories    = ["embedded", "hardware-support", "no-std"]
 xmc1100 = {version = "0.2.0", features = ["rt"]}
 bare-metal = { version = "0.2.4", features = ["const-fn"] }
 cortex-m = "0.6.0"
-cortex-m-rt = "0.6.8"
+cortex-m-rt = "0.6.11"
 nb = "0.1.1"
 void = { version = "1.0.2", default-features = false }
 cast = { version = "0.2.2", default-features = false }
 
 [dependencies.embedded-hal]
 features = ["unproven"]
-version = "0.2.2"
+version = "0.2.3"
 
 [dev-dependencies]
 panic-halt = "0.2.0"

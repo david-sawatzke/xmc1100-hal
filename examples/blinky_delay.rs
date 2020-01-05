@@ -27,9 +27,9 @@ fn main() -> ! {
             /* Get delay provider */
             let mut delay = Delay::new(cp.SYST, &scu);
             loop {
-                led.set_high();
+                led.set_high().ok();
                 delay.delay_ms(1_000_u16);
-                led.set_low();
+                led.set_low().ok();
                 delay.delay_ms(1_000_u16);
             }
         });

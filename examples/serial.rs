@@ -37,10 +37,10 @@ fn main() -> ! {
             // Create usart
             let mut serial = Serial::usic0_ch0tx(p.USIC0_CH0, tx, Bps(9600), &mut scu);
             loop {
-                led.set_high();
+                led.set_high().ok();
                 serial.write_str("Off\r\n").ok();
                 delay.delay_ms(1_000_u16);
-                led.set_low();
+                led.set_low().ok();
                 serial.write_str("On\r\n").ok();
                 delay.delay_ms(1_000_u16);
             }
