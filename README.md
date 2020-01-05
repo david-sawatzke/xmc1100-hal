@@ -25,7 +25,7 @@ $ arm-none-eabi-gdb <YourElfFile>
 And finally, connect to the gdb server and flash the chip in gdb
 
 ``` gdb
-(gdb) target extended-rremote localhost:3333
+(gdb) target extended-remote localhost:3333
 (gdb) load
 (gdb) c
 ```
@@ -37,6 +37,10 @@ And finally, connect to the gdb server and flash the chip in gdb
   timing errors. You can also observe these in the arduino implementation with
   high baudrates (115200 baud), although they don't error out
 
+- Why do interrupts not work?
+
+  After flashing with openocd, interrupts don't work (for me). When I powercycle
+  the board they work again
 ## Interrupts/Exceptions
 [Rant time]
 
