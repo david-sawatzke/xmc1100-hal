@@ -88,6 +88,9 @@ SECTIONS
   /* ### .text */
   .text _stext :
   {
+    *(.PreResetTrampoline)
+    *(.Reset);
+
     *(.text .text.*);
     *(.HardFaultTrampoline);
     *(.HardFault.*);
