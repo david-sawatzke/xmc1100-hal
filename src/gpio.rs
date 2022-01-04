@@ -204,7 +204,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Input<Floating>> {
                         unsafe {
-                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
+                            (*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value1()
                             });
                         }
@@ -217,7 +217,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                         ) -> $PXi<Input<PullDown>> {
                         unsafe {
-                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
+                            (*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value2()
                             });
                         }
@@ -230,7 +230,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Input<PullUp>> {
                         unsafe {
-                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
+                            (*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value3()
                             });
                         }
@@ -243,7 +243,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Output<OpenDrain>> {
                         unsafe {
-                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
+                            (*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value17()
                             });
                         }
@@ -256,7 +256,7 @@ macro_rules! gpio {
                         _cs: &CriticalSection
                     ) -> $PXi<Output<PushPull>> {
                         unsafe {
-                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
+                            (*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().value9()
                             });
                         }
@@ -267,7 +267,7 @@ macro_rules! gpio {
                     fn set_alternate_mode(&mut self, mode: u8) {
                         debug_assert!(mode < 0b1000);
                         unsafe {
-                            &(*$PORTX::ptr()).$iocrx.modify(|_, w| {
+                            (*$PORTX::ptr()).$iocrx.modify(|_, w| {
                                 w.$pcx().bits(0b10000 | mode)
                             });
                         }
@@ -422,7 +422,7 @@ gpio!(PORT1, port1, {}, [
     P1_6: (p1_6, 6, Input<Floating>, iocr4, pc6),
 ]);
 
-gpio!(PORT2, port2, {unsafe {&(*PORT2::ptr()).pdisc.write(|w| w.bits(0));}
+gpio!(PORT2, port2, {unsafe {(*PORT2::ptr()).pdisc.write(|w| w.bits(0))}
 }, [
     P2_0: (p2_0, 0, Input<Floating>, iocr0, pc0),
     P2_1: (p2_1, 1, Input<Floating>, iocr0, pc1),
